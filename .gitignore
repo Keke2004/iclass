@@ -1,4 +1,27 @@
-# Python
+# =========================================
+# General
+# =========================================
+# IDE / Editor
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+
+# =========================================
+# Backend (Python / Django)
+# =========================================
 __pycache__/
 *.pyc
 *.pyo
@@ -11,18 +34,29 @@ venv/
 db.sqlite3
 *.sqlite3
 
-# IDE / Editor
-.vscode/
-.idea/
-
 # Django
-*.log
 local_settings.py
 
-# Static and media files
-/static/
-/media/
 
-# OS generated files
-.DS_Store
-Thumbs.db
+# =========================================
+# Frontend (Vue.js / Node.js)
+# =========================================
+# Dependencies
+/frontend/node_modules/
+
+# Build output
+/frontend/dist/
+/frontend/dist-ssr/
+
+# Local config
+/frontend/*.local
+
+# Testing
+/frontend/coverage/
+/frontend/__screenshots__/
+/frontend/cypress/videos/
+/frontend/cypress/screenshots/
+
+# Caches
+/frontend/.eslintcache
+/frontend/*.tsbuildinfo
