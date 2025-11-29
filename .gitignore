@@ -60,3 +60,4 @@ local_settings.py
 # Caches
 /frontend/.eslintcache
 /frontend/*.tsbuildinfo
+node_modules
