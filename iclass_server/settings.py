@@ -42,6 +42,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
 
+    # Third-party apps
+    'channels',
+
     # Local apps
     'users',
     'courses',
@@ -78,6 +81,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "iclass_server.wsgi.application"
+
+# Channels
+ASGI_APPLICATION = "iclass_server.asgi.application"
 
 
 # Database
