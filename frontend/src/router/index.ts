@@ -54,6 +54,35 @@ const router = createRouter({
           // this generates a separate chunk (About.[hash].js) for this route
           // which is lazy-loaded when the route is visited.
           component: () => import('../views/AboutView.vue')
+        },
+        // Profile Page
+        {
+          path: '/profile',
+          name: 'profile',
+          component: () => import('../views/ProfileView.vue')
+        },
+        // Student Routes
+        {
+          path: 'student/courses',
+          name: 'student-courses',
+          component: () => import('../views/student/Courses.vue')
+        },
+        // Teacher Routes
+        {
+          path: 'teacher/courses',
+          name: 'teacher-courses',
+          component: () => import('../views/teacher/Courses.vue')
+        },
+        {
+          path: 'teacher/courses/create',
+          name: 'teacher-create-course',
+          component: () => import('../views/teacher/CreateCourse.vue')
+        },
+        // Admin Routes
+        {
+          path: 'admin/users',
+          name: 'admin-users',
+          component: () => import('../views/admin/Users.vue')
         }
       ]
     }
@@ -61,13 +90,52 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const loggedIn = localStorage.getItem('access_token');
+  const accessToken = localStorage.getItem('access_token');
+  const userRole = localStorage.getItem('user_role');
 
-  if (to.matched.some(record => record.meta.requiresAuth) && !loggedIn) {
-    next('/login');
-  } else {
-    next();
+  // 1. 已登录用户访问登录/注册页 -> 重定向到主页
+  if (accessToken && userRole && (to.name === 'login' || to.name === 'register')) {
+    switch (userRole) {
+      case 'student':
+        return next('/student/dashboard');
+      case 'teacher':
+        return next('/teacher/dashboard');
+      case 'admin':
+        return next('/admin/dashboard');
+      default:
+        // 角色丢失或异常，登出
+        localStorage.clear();
+        return next('/login');
+    }
   }
+
+  // 2. 访问需要认证的路由
+  if (to.matched.some((record) => record.meta.requiresAuth)) {
+    if (!accessToken || !userRole) {
+      // 未登录 -> 重定向到登录页
+      return next('/login');
+    } else {
+      // 已登录，但访问的是根路径或通用dashboard -> 根据角色重定向
+      if (to.path === '/' || to.path === '/dashboard') {
+        switch (userRole) {
+          case 'student':
+            return next('/student/dashboard');
+          case 'teacher':
+            return next('/teacher/dashboard');
+          case 'admin':
+            return next('/admin/dashboard');
+          default:
+            localStorage.clear();
+            return next('/login');
+        }
+      }
+      // 访问其他受保护路由 -> 放行
+      return next();
+    }
+  }
+
+  // 3. 访问公共路由 -> 放行
+  next();
 });
 
 export default router
