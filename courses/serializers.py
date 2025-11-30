@@ -5,9 +5,11 @@ class CourseSerializer(serializers.ModelSerializer):
     """
     课程序列化器
     """
+    teacher = serializers.ReadOnlyField(source='teacher.username')
+
     class Meta:
         model = Course
-        fields = '__all__'
+        fields = ['id', 'name', 'teacher', 'students', 'description', 'created_at']
 
 class CourseMaterialSerializer(serializers.ModelSerializer):
     """
