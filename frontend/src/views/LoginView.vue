@@ -30,6 +30,9 @@
             登 录
           </el-button>
         </el-form-item>
+        <div class="register-link">
+          <el-link type="primary" @click="$router.push('/register')">没有账户？立即注册</el-link>
+        </div>
       </el-form>
     </el-card>
   </div>
@@ -37,8 +40,12 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
+import { useRouter } from 'vue-router';
 import type { FormInstance, FormRules } from 'element-plus';
+import { ElMessage } from 'element-plus';
+import { login } from '../services/auth';
 
+const router = useRouter();
 const loginFormRef = ref<FormInstance>();
 
 const loginForm = reactive({
@@ -53,10 +60,19 @@ const loginRules = reactive<FormRules>({
 
 const handleLogin = async () => {
   if (!loginFormRef.value) return;
-  await loginFormRef.value.validate((valid) => {
+  await loginFormRef.value.validate(async (valid) => {
     if (valid) {
-      console.log('Logging in with:', loginForm.username, loginForm.password);
-      // API call will be implemented here
+      try {
+        const { access, refresh } = await login(loginForm);
+        localStorage.setItem('access_token', access);
+        localStorage.setItem('refresh_token', refresh);
+        ElMessage.success('登录成功');
+        // 这里可以根据用户角色跳转到不同页面
+        router.push('/');
+      } catch (error) {
+        ElMessage.error('用户名或密码错误');
+        console.error('Login failed:', error);
+      }
     } else {
       console.log('error submit!');
       return false;
@@ -86,5 +102,10 @@ const handleLogin = async () => {
 
 .login-button {
   width: 100%;
+}
+
+.register-link {
+  text-align: center;
+  margin-top: 10px;
 }
 </style>
