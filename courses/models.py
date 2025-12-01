@@ -37,3 +37,19 @@ class Announcement(models.Model):
 
     def __str__(self):
         return self.title
+
+class Chapter(models.Model):
+    """
+    课程章节模型
+    """
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='chapters', verbose_name='所属课程')
+    title = models.CharField(max_length=100, verbose_name='章节标题')
+    content = models.TextField(verbose_name='章节内容', blank=True, null=True)
+    order = models.PositiveIntegerField(default=0, verbose_name='章节顺序')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f"{self.course.name} - {self.title}"

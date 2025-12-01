@@ -23,6 +23,7 @@
           </template>
           <p class="course-description">{{ course.description }}</p>
           <div class="card-footer">
+            <el-button type="primary" link @click="navigateToCourse(course.id)">进入课程</el-button>
             <el-button type="primary" link @click="openStudentManager(course)">管理学生</el-button>
           </div>
         </el-card>
@@ -34,7 +35,7 @@
       <div v-if="currentCourse">
         <h3>已选学生</h3>
         <el-tag
-          v-for="student in currentCourse.students"
+          v-for="student in enrolledStudentDetails"
           :key="student.id"
           closable
           @close="removeStudent(student.id)"
@@ -84,7 +85,7 @@ interface Course {
   id: number;
   name: string;
   description: string;
-  students: Student[];
+  students: number[];
 }
 
 const courses = ref<Course[]>([]);
@@ -94,9 +95,15 @@ const studentManagerVisible = ref(false);
 const currentCourse = ref<Course | null>(null);
 const selectedStudent = ref<number | null>(null);
 
+const enrolledStudentDetails = computed(() => {
+  if (!currentCourse.value) return [];
+  const studentMap = new Map(allStudents.value.map(s => [s.id, s]));
+  return currentCourse.value.students.map(id => studentMap.get(id)).filter(s => s) as Student[];
+});
+
 const availableStudents = computed(() => {
   if (!currentCourse.value) return [];
-  const enrolledStudentIds = new Set(currentCourse.value.students.map(s => s.id));
+  const enrolledStudentIds = new Set(currentCourse.value.students);
   return allStudents.value.filter(s => !enrolledStudentIds.has(s.id));
 });
 
@@ -125,6 +132,10 @@ const fetchAllStudents = async () => {
 
 const goToCreateCourse = () => {
   router.push({ name: 'teacher-create-course' });
+};
+
+const navigateToCourse = (courseId: number) => {
+  router.push({ name: 'course-detail', params: { id: courseId } });
 };
 
 const openStudentManager = (course: Course) => {

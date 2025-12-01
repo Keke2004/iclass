@@ -22,7 +22,7 @@
           </template>
           <p class="course-description">{{ course.description }}</p>
           <div class="card-footer">
-            <el-button type="primary" link>进入课程</el-button>
+            <el-button type="primary" link @click="navigateToCourse(course.id)">进入课程</el-button>
           </div>
         </el-card>
       </el-col>
@@ -32,6 +32,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import apiClient from '../../services/api';
 import { ElMessage } from 'element-plus';
 
@@ -44,6 +45,11 @@ interface Course {
 
 const courses = ref<Course[]>([]);
 const loading = ref(true);
+const router = useRouter();
+
+const navigateToCourse = (courseId: number) => {
+  router.push({ name: 'course-detail', params: { id: courseId } });
+};
 
 const fetchEnrolledCourses = async () => {
   try {

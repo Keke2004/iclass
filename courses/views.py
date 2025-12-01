@@ -2,9 +2,29 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from users.models import User
-from .models import Course, CourseMaterial, Announcement
-from .serializers import CourseSerializer, CourseMaterialSerializer, AnnouncementSerializer
+from .models import Course, CourseMaterial, Announcement, Chapter
+from .serializers import CourseSerializer, CourseMaterialSerializer, AnnouncementSerializer, ChapterSerializer
 from .permissions import IsTeacherOrReadOnly
+
+class ChapterViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows chapters to be viewed or edited.
+    """
+    serializer_class = ChapterSerializer
+    permission_classes = [permissions.IsAuthenticated, IsTeacherOrReadOnly]
+
+    def get_queryset(self):
+        """
+        Filter chapters by the course specified in the URL.
+        """
+        return Chapter.objects.filter(course_id=self.kwargs['course_pk'])
+
+    def perform_create(self, serializer):
+        """
+        Associate the chapter with the course from the URL.
+        """
+        course = Course.objects.get(pk=self.kwargs['course_pk'])
+        serializer.save(course=course)
 
 class CourseViewSet(viewsets.ModelViewSet):
     """
@@ -22,16 +42,13 @@ class CourseViewSet(viewsets.ModelViewSet):
         - Admins see all courses.
         """
         user = self.request.user
-        # The check `self.action == 'list'` is removed to apply the logic more broadly,
-        # but the core filtering logic remains. Let's adjust it to be more robust.
-        if self.action == 'list':
-            if user.is_teacher:
-                return Course.objects.filter(teacher=user)
-            elif user.is_student:
-                return user.enrolled_courses.all()
-        # For create, retrieve, update, etc., we should allow access to all courses
-        # and let permissions handle the object-level access.
-        return Course.objects.all()
+        if user.is_staff:  # Admins see all courses
+            return Course.objects.all()
+        if user.is_teacher:
+            return Course.objects.filter(teacher=user)
+        elif user.is_student:
+            return user.enrolled_courses.all()
+        return Course.objects.none()  # Default to no courses if role is not set
 
     def perform_create(self, serializer):
         """
@@ -79,12 +96,38 @@ class CourseMaterialViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows course materials to be viewed or edited.
     """
-    queryset = CourseMaterial.objects.all()
     serializer_class = CourseMaterialSerializer
+    permission_classes = [permissions.IsAuthenticated, IsTeacherOrReadOnly]
+
+    def get_queryset(self):
+        """
+        Filter materials by the course specified in the URL.
+        """
+        return CourseMaterial.objects.filter(course_id=self.kwargs['course_pk'])
+
+    def perform_create(self, serializer):
+        """
+        Associate the material with the course from the URL.
+        """
+        course = Course.objects.get(pk=self.kwargs['course_pk'])
+        serializer.save(course=course)
 
 class AnnouncementViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows announcements to be viewed or edited.
     """
-    queryset = Announcement.objects.all()
     serializer_class = AnnouncementSerializer
+    permission_classes = [permissions.IsAuthenticated, IsTeacherOrReadOnly]
+
+    def get_queryset(self):
+        """
+        Filter announcements by the course specified in the URL.
+        """
+        return Announcement.objects.filter(course_id=self.kwargs['course_pk'])
+
+    def perform_create(self, serializer):
+        """
+        Associate the announcement with the course from the URL.
+        """
+        course = Course.objects.get(pk=self.kwargs['course_pk'])
+        serializer.save(course=course)

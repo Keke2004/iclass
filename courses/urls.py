@@ -1,13 +1,16 @@
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import CourseViewSet, CourseMaterialViewSet, AnnouncementViewSet
+from rest_framework_nested import routers
+from .views import CourseViewSet, CourseMaterialViewSet, AnnouncementViewSet, ChapterViewSet
 
-router = DefaultRouter()
-# Register CourseViewSet to the root ('') of the included URL patterns
+router = routers.DefaultRouter()
 router.register(r'', CourseViewSet, basename='course')
-router.register(r'materials', CourseMaterialViewSet)
-router.register(r'announcements', AnnouncementViewSet)
+
+courses_router = routers.NestedDefaultRouter(router, r'', lookup='course_pk')
+courses_router.register(r'chapters', ChapterViewSet, basename='course-chapters')
+courses_router.register(r'announcements', AnnouncementViewSet, basename='course-announcements')
+courses_router.register(r'materials', CourseMaterialViewSet, basename='course-materials')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('', include(courses_router.urls)),
 ]

@@ -36,3 +36,11 @@ class UserSerializer(serializers.ModelSerializer):
         user.role = validated_data.get('role', 'student')
         user.save()
         return user
+
+class BasicUserSerializer(serializers.ModelSerializer):
+    """
+    一个只包含用户基本信息的序列化器
+    """
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'role']
