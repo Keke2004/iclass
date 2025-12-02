@@ -1,9 +1,11 @@
 from rest_framework import viewsets, permissions, generics, status
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import UserSerializer, MyTokenObtainPairSerializer, PasswordChangeSerializer
 from .models import User
 from .permissions import IsAdminRole
+from .filters import UserFilter
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -15,6 +17,8 @@ class UserViewSet(viewsets.ModelViewSet):
     - Other authenticated users can only view the user list (e.g., for selecting students).
     """
     serializer_class = UserSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = UserFilter
     
     def get_queryset(self):
         """

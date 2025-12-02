@@ -1,6 +1,24 @@
 <template>
   <div class="users-container">
     <h1>用户管理</h1>
+    <div class="toolbar">
+      <div class="filters-grid">
+        <el-input v-model="filters.username" placeholder="用户名" @keyup.enter="handleSearch" clearable />
+        <el-input v-model="filters.first_name" placeholder="姓名" @keyup.enter="handleSearch" clearable />
+        <el-input v-model="filters.email" placeholder="邮箱" @keyup.enter="handleSearch" clearable />
+        <el-input v-model="filters.school" placeholder="单位/学校" @keyup.enter="handleSearch" clearable />
+        <el-input v-model="filters.student_id" placeholder="学号/工号" @keyup.enter="handleSearch" clearable />
+        <el-select v-model="filters.role" placeholder="角色" clearable>
+          <el-option label="学生" value="student" />
+          <el-option label="教师" value="teacher" />
+          <el-option label="管理员" value="admin" />
+        </el-select>
+      </div>
+      <div class="actions">
+        <el-button type="primary" @click="handleSearch">查询</el-button>
+        <el-button @click="resetFilters">重置</el-button>
+      </div>
+    </div>
     <el-table :data="users" v-loading="loading" style="width: 100%">
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="username" label="用户名" />
@@ -47,7 +65,6 @@
           <el-radio-group v-model="currentUser.gender">
             <el-radio label="male">男</el-radio>
             <el-radio label="female">女</el-radio>
-            <el-radio label="other">其他</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="手机号">
@@ -81,7 +98,7 @@ interface User {
   email: string;
   role: 'student' | 'teacher' | 'admin';
   first_name: string;
-  gender: 'male' | 'female' | 'other' | null;
+  gender: 'male' | 'female' | null;
   phone_number: string | null;
   school: string | null;
   student_id: string | null;
@@ -92,10 +109,28 @@ const loading = ref(true);
 const editDialogVisible = ref(false);
 const currentUser = ref<User | null>(null);
 
+const initialFilters = {
+  username: '',
+  first_name: '',
+  email: '',
+  school: '',
+  student_id: '',
+  role: '',
+};
+const filters = ref({ ...initialFilters });
+
 const fetchUsers = async () => {
   loading.value = true;
   try {
-    const response = await apiClient.get('/users/');
+    const params = new URLSearchParams();
+    // Iterate over the filters object and append non-empty values to params
+    for (const key in filters.value) {
+      const value = filters.value[key as keyof typeof filters.value];
+      if (value) {
+        params.append(key, value);
+      }
+    }
+    const response = await apiClient.get(`/users/`, { params });
     users.value = response.data;
   } catch (error) {
     console.error('获取用户列表失败:', error);
@@ -103,6 +138,15 @@ const fetchUsers = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const handleSearch = () => {
+  fetchUsers();
+};
+
+const resetFilters = () => {
+  filters.value = { ...initialFilters };
+  fetchUsers();
 };
 
 const openEditDialog = (user: User) => {
@@ -121,7 +165,7 @@ const updateUser = async () => {
     await apiClient.patch(`/users/${currentUser.value.id}/`, payload);
     ElMessage.success('用户信息更新成功！');
     editDialogVisible.value = false;
-    await fetchUsers(); // 重新加载数据
+    await fetchUsers(); // 使用当前筛选条件重新加载数据
   } catch (error) {
     console.error('更新用户失败:', error);
     ElMessage.error('更新用户失败。');
@@ -132,7 +176,7 @@ const deleteUser = async (userId: number) => {
   try {
     await apiClient.delete(`/users/${userId}/`);
     ElMessage.success('用户删除成功！');
-    await fetchUsers(); // 重新加载数据
+    await fetchUsers(); // 使用当前筛选条件重新加载数据
   } catch (error) {
     console.error('删除用户失败:', error);
     ElMessage.error('删除用户失败。');
@@ -147,5 +191,27 @@ onMounted(() => {
 <style scoped>
 .users-container {
   padding: 20px;
+}
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  flex-grow: 1;
+  margin-right: 20px; /* Add margin to the right of filters */
+}
+.filters-grid .el-input,
+.filters-grid .el-select {
+  width: 100%;
+}
+.actions {
+  display: flex;
+  gap: 10px;
 }
 </style>
