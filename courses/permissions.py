@@ -22,4 +22,6 @@ class IsTeacherOrReadOnly(permissions.BasePermission):
             return True
 
         # Write permissions are only allowed to the teacher who owns the course.
+        if hasattr(obj, 'course'):
+            return obj.course.teacher == request.user
         return obj.teacher == request.user

@@ -1,24 +1,36 @@
 <template>
-  <div>
-    <div class="chapter-header">
+  <div class="chapter-manager-container">
+    <div class="header">
       <h2>课程章节</h2>
       <el-button v-if="isTeacher" type="primary" @click="openAddChapterDialog">添加新章节</el-button>
     </div>
-    <el-collapse v-model="activeChapter" accordion>
-      <el-collapse-item v-for="chapter in chapters" :key="chapter.id" :name="chapter.id">
-        <template #title>
-          <span class="chapter-title">{{ chapter.title }}</span>
+
+    <div v-if="chapters.length > 0" class="chapter-list">
+      <div v-for="(chapter, index) in chapters" :key="chapter.id" class="chapter-item">
+        <div class="chapter-item-header" @click="toggleChapter(chapter.id)">
+          <div class="chapter-number" :class="{ active: activeChapterId === chapter.id }">{{ index + 1 }}</div>
+          <div class="chapter-title">{{ chapter.title }}</div>
           <div v-if="isTeacher" class="chapter-actions">
-            <el-button type="text" @click.stop="openEditChapterDialog(chapter)">编辑</el-button>
-            <el-button type="text" @click.stop="deleteChapter(chapter.id)">删除</el-button>
+            <el-button type="primary" link @click.stop="openEditChapterDialog(chapter)">编辑</el-button>
+            <el-popconfirm
+              title="确定要删除这个章节吗？"
+              confirm-button-text="确认"
+              cancel-button-text="取消"
+              @confirm="deleteChapter(chapter.id)"
+            >
+              <template #reference>
+                <el-button type="danger" link @click.stop>删除</el-button>
+              </template>
+            </el-popconfirm>
           </div>
-        </template>
-        <div class="chapter-content" v-html="chapter.content"></div>
-      </el-collapse-item>
-    </el-collapse>
+        </div>
+        <div v-if="activeChapterId === chapter.id" class="chapter-content" v-html="chapter.content"></div>
+      </div>
+    </div>
+    <el-empty v-else description="暂无章节内容"></el-empty>
 
     <!-- 添加/编辑章节对话框 -->
-    <el-dialog v-model="dialogVisible" :title="isEditing ? '编辑章节' : '添加新章节'" width="50%">
+    <el-dialog v-model="dialogVisible" :title="isEditing ? '编辑章节' : '添加新章节'" width="60%">
       <el-form :model="chapterForm" label-width="80px">
         <el-form-item label="章节标题">
           <el-input v-model="chapterForm.title"></el-input>
@@ -41,20 +53,19 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import apiClient from '../../services/api';
-import { ElMessage, ElButton, ElCollapse, ElCollapseItem, ElDialog, ElForm, ElFormItem, ElInput } from 'element-plus';
+import { ElMessage, ElButton, ElDialog, ElForm, ElFormItem, ElInput, ElEmpty, ElPopconfirm } from 'element-plus';
 
 interface Chapter {
   id: number;
   title: string;
   content: string;
-  order: number;
 }
 
 const route = useRoute();
 const courseId = route.params.id;
 
 const chapters = ref<Chapter[]>([]);
-const activeChapter = ref<number | null>(null);
+const activeChapterId = ref<number | null>(null);
 const dialogVisible = ref(false);
 const isEditing = ref(false);
 const chapterForm = ref({
@@ -73,6 +84,14 @@ const fetchChapters = async () => {
   } catch (error) {
     console.error('获取章节列表失败:', error);
     ElMessage.error('无法加载章节列表。');
+  }
+};
+
+const toggleChapter = (chapterId: number) => {
+  if (activeChapterId.value === chapterId) {
+    activeChapterId.value = null; // Collapse if already active
+  } else {
+    activeChapterId.value = chapterId; // Expand new one
   }
 };
 
@@ -122,21 +141,89 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.chapter-header {
+.chapter-manager-container {
+  padding: 24px;
+  background-color: #f5f7fa;
+}
+
+.header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
-.chapter-title {
+
+.chapter-list {
+  position: relative;
+}
+
+.chapter-item {
+  background-color: #fff;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  transition: box-shadow 0.3s;
+}
+
+.chapter-item:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.chapter-item-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 24px;
+  cursor: pointer;
+}
+
+.chapter-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: bold;
+  margin-right: 16px;
+  flex-shrink: 0;
+  transition: background-color 0.3s;
 }
+
+.chapter-number.active {
+    background-color: #409eff;
+}
+
+.chapter-title {
+  flex-grow: 1;
+  font-size: 16px;
+  font-weight: 500;
+}
+
 .chapter-actions {
   margin-left: auto;
-  padding-left: 20px;
+  display: flex;
+  gap: 16px;
 }
+
 .chapter-content {
-  padding: 15px;
-  line-height: 1.6;
+  padding: 0 24px 16px 72px; /* 24px + 32px + 16px */
+  color: #606266;
+  line-height: 1.8;
+  border-top: 1px solid #ebeef5;
+  margin-top: -1px;
+  padding-top: 16px;
+}
+
+/* Vertical line */
+.chapter-list::before {
+  content: '';
+  position: absolute;
+  left: 40px; /* (24px padding + 16px) */
+  top: 16px;
+  bottom: 16px;
+  width: 2px;
+  background-color: #e0e0e0;
+  transform: translateX(-50%);
 }
 </style>

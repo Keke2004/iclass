@@ -8,18 +8,26 @@ class ChapterSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Chapter
-        fields = '__all__'
+        fields = ['id', 'title', 'content', 'course', 'created_at']
+        read_only_fields = ['course']
 
 class CourseSerializer(serializers.ModelSerializer):
     """
     课程序列化器
     """
     teacher = BasicUserSerializer(read_only=True)
-    students = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    students = BasicUserSerializer(many=True, read_only=True)
 
     class Meta:
         model = Course
         fields = ['id', 'name', 'teacher', 'students', 'description', 'created_at']
+
+
+class CourseListSerializer(CourseSerializer):
+    """
+    用于课程列表的轻量级序列化器
+    """
+    students = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
 class CourseMaterialSerializer(serializers.ModelSerializer):
     """
@@ -35,4 +43,5 @@ class AnnouncementSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Announcement
-        fields = '__all__'
+        fields = ['id', 'title', 'content', 'course', 'created_at']
+        read_only_fields = ['course']

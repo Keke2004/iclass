@@ -9,7 +9,7 @@
         </div>
       </template>
       <div class="user-item">
-        <el-avatar icon="el-icon-user-solid"></el-avatar>
+        <el-avatar>{{ teacher.username ? teacher.username[0].toUpperCase() : '' }}</el-avatar>
         <span class="username">{{ teacher.username }}</span>
         <el-tag type="success" size="small">教师</el-tag>
       </div>
@@ -23,7 +23,7 @@
         </div>
       </template>
       <div v-for="student in students" :key="student.id" class="user-item">
-        <el-avatar icon="el-icon-user"></el-avatar>
+        <el-avatar>{{ student.username ? student.username[0].toUpperCase() : '' }}</el-avatar>
         <span class="username">{{ student.username }}</span>
         <el-tag type="info" size="small">学生</el-tag>
         <el-button v-if="isTeacher" type="danger" link @click="removeStudent(student.id)" class="remove-btn">移除</el-button>

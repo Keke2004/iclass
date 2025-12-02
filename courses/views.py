@@ -1,9 +1,10 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from users.models import User
 from .models import Course, CourseMaterial, Announcement, Chapter
-from .serializers import CourseSerializer, CourseMaterialSerializer, AnnouncementSerializer, ChapterSerializer
+from .serializers import CourseSerializer, CourseListSerializer, CourseMaterialSerializer, AnnouncementSerializer, ChapterSerializer
 from .permissions import IsTeacherOrReadOnly
 
 class ChapterViewSet(viewsets.ModelViewSet):
@@ -19,6 +20,15 @@ class ChapterViewSet(viewsets.ModelViewSet):
         """
         return Chapter.objects.filter(course_id=self.kwargs['course_pk'])
 
+    def get_object(self):
+        """
+        Retrieve a specific chapter by its pk, filtered by the course_pk.
+        """
+        queryset = self.get_queryset()
+        chapter = get_object_or_404(queryset, pk=self.kwargs['pk'])
+        self.check_object_permissions(self.request, chapter)
+        return chapter
+
     def perform_create(self, serializer):
         """
         Associate the chapter with the course from the URL.
@@ -32,8 +42,15 @@ class CourseViewSet(viewsets.ModelViewSet):
     - Teachers can create, update, and delete their own courses.
     - Students can only view courses.
     """
-    serializer_class = CourseSerializer
     permission_classes = [permissions.IsAuthenticated, IsTeacherOrReadOnly]
+
+    def get_serializer_class(self):
+        """
+        为列表视图使用轻量级序列化器，为详细视图使用完整序列化器。
+        """
+        if self.action == 'list':
+            return CourseListSerializer
+        return CourseSerializer
 
     def get_queryset(self):
         """

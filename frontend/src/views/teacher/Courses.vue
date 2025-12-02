@@ -114,8 +114,6 @@ const fetchCourses = async () => {
   } catch (error) {
     console.error('获取课程列表失败:', error);
     ElMessage.error('无法加载课程列表，请稍后重试。');
-  } finally {
-    loading.value = false;
   }
 };
 
@@ -145,18 +143,18 @@ const openStudentManager = (course: Course) => {
 
 const addStudent = async () => {
   if (!currentCourse.value || !selectedStudent.value) return;
+  const studentIdToAdd = selectedStudent.value; // 保存ID
   try {
     await apiClient.post(`/courses/${currentCourse.value.id}/add_student/`, {
-      student_id: selectedStudent.value,
+      student_id: studentIdToAdd,
     });
     ElMessage.success('学生添加成功！');
-    // 重新获取课程数据以更新学生列表
-    await fetchCourses();
-    // 更新当前课程的引用
-    const updatedCourse = courses.value.find(c => c.id === currentCourse.value!.id);
-    if (updatedCourse) {
-      currentCourse.value = updatedCourse;
+
+    // 直接在前端更新数据
+    if (currentCourse.value) {
+      currentCourse.value.students.push(studentIdToAdd);
     }
+
     selectedStudent.value = null; // 重置选择
   } catch (error) {
     console.error('添加学生失败:', error);
@@ -171,12 +169,13 @@ const removeStudent = async (studentId: number) => {
       student_id: studentId,
     });
     ElMessage.success('学生移除成功！');
-    // 重新获取课程数据以更新学生列表
-    await fetchCourses();
-    // 更新当前课程的引用
-    const updatedCourse = courses.value.find(c => c.id === currentCourse.value!.id);
-    if (updatedCourse) {
-      currentCourse.value = updatedCourse;
+
+    // 直接在前端更新数据
+    if (currentCourse.value) {
+      const index = currentCourse.value.students.indexOf(studentId);
+      if (index > -1) {
+        currentCourse.value.students.splice(index, 1);
+      }
     }
   } catch (error) {
     console.error('移除学生失败:', error);
@@ -184,9 +183,16 @@ const removeStudent = async (studentId: number) => {
   }
 };
 
-onMounted(() => {
-  fetchCourses();
-  fetchAllStudents();
+onMounted(async () => {
+  loading.value = true;
+  try {
+    await Promise.all([fetchCourses(), fetchAllStudents()]);
+  } catch (error) {
+    // 错误已在各自函数中处理
+    console.error("加载初始数据失败:", error);
+  } finally {
+    loading.value = false;
+  }
 });
 </script>
 
