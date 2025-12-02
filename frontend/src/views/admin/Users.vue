@@ -4,7 +4,10 @@
     <el-table :data="users" v-loading="loading" style="width: 100%">
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="username" label="用户名" />
+      <el-table-column prop="first_name" label="姓名" />
       <el-table-column prop="email" label="邮箱" />
+      <el-table-column prop="school" label="单位/学校" />
+      <el-table-column prop="student_id" label="学号/工号" />
       <el-table-column prop="role" label="角色" width="120" />
       <el-table-column label="操作" width="200">
         <template #default="scope">
@@ -23,9 +26,15 @@
 
     <!-- 编辑用户对话框 -->
     <el-dialog v-model="editDialogVisible" title="编辑用户">
-      <el-form v-if="currentUser" :model="currentUser">
+      <el-form v-if="currentUser" :model="currentUser" label-width="80px">
         <el-form-item label="用户名">
           <el-input v-model="currentUser.username" disabled />
+        </el-form-item>
+        <el-form-item label="姓名">
+          <el-input v-model="currentUser.first_name" />
+        </el-form-item>
+        <el-form-item label="邮箱">
+          <el-input v-model="currentUser.email" />
         </el-form-item>
         <el-form-item label="角色">
           <el-select v-model="currentUser.role" placeholder="选择角色">
@@ -33,6 +42,22 @@
             <el-option label="教师" value="teacher" />
             <el-option label="管理员" value="admin" />
           </el-select>
+        </el-form-item>
+        <el-form-item label="性别">
+          <el-radio-group v-model="currentUser.gender">
+            <el-radio label="male">男</el-radio>
+            <el-radio label="female">女</el-radio>
+            <el-radio label="other">其他</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="手机号">
+          <el-input v-model="currentUser.phone_number" />
+        </el-form-item>
+        <el-form-item label="单位">
+          <el-input v-model="currentUser.school" />
+        </el-form-item>
+        <el-form-item label="学号/工号">
+          <el-input v-model="currentUser.student_id" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -55,6 +80,11 @@ interface User {
   username: string;
   email: string;
   role: 'student' | 'teacher' | 'admin';
+  first_name: string;
+  gender: 'male' | 'female' | 'other' | null;
+  phone_number: string | null;
+  school: string | null;
+  student_id: string | null;
 }
 
 const users = ref<User[]>([]);
@@ -84,10 +114,12 @@ const openEditDialog = (user: User) => {
 const updateUser = async () => {
   if (!currentUser.value) return;
   try {
-    await apiClient.patch(`/users/${currentUser.value.id}/`, {
-      role: currentUser.value.role,
-    });
-    ElMessage.success('用户角色更新成功！');
+    // 从 currentUser 中提取需要更新的字段
+    const { role, first_name, email, gender, phone_number, school, student_id } = currentUser.value;
+    const payload = { role, first_name, email, gender, phone_number, school, student_id };
+
+    await apiClient.patch(`/users/${currentUser.value.id}/`, payload);
+    ElMessage.success('用户信息更新成功！');
     editDialogVisible.value = false;
     await fetchUsers(); // 重新加载数据
   } catch (error) {

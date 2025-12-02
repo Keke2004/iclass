@@ -1,11 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import UserViewSet, UserProfileView
+from .views import UserViewSet, UserProfileView, PasswordChangeView
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
 
 urlpatterns = [
     path('users/profile/', UserProfileView.as_view(), name='user-profile'),
+    path('auth/password/change/', PasswordChangeView.as_view(), name='password_change'),
     path('', include(router.urls)),
 ]

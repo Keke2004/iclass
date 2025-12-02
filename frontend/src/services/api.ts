@@ -21,4 +21,14 @@ apiClient.interceptors.request.use(
   }
 );
 
+// 获取当前用户信息
+export const getProfile = () => {
+  return apiClient.get('/users/profile/');
+};
+
+// 更新当前用户信息
+export const updateProfile = (data: any) => {
+  return apiClient.put('/users/profile/', data);
+};
+
 export default apiClient;

@@ -1,8 +1,9 @@
-from rest_framework import viewsets, permissions, generics
+from rest_framework import viewsets, permissions, generics, status
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import UserSerializer, MyTokenObtainPairSerializer
+from .serializers import UserSerializer, MyTokenObtainPairSerializer, PasswordChangeSerializer
 from .models import User
+from .permissions import IsAdminRole
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -40,14 +41,27 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             self.permission_classes = [permissions.AllowAny]
         elif self.action in ['update', 'partial_update', 'destroy']:
-            self.permission_classes = [permissions.IsAdminUser]
+            self.permission_classes = [IsAdminRole]
         else: # list, retrieve
             self.permission_classes = [permissions.IsAuthenticated]
         return super().get_permissions()
 
-class UserProfileView(generics.RetrieveAPIView):
+class UserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
         return self.request.user
+
+class PasswordChangeView(generics.GenericAPIView):
+    serializer_class = PasswordChangeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "密码修改成功"}, status=status.HTTP_200_OK)
