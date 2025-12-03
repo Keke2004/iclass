@@ -93,13 +93,13 @@ const handleLogin = async () => {
           // 根据角色跳转
           switch (realRole) {
             case 'student':
-              router.push('/student/dashboard');
+              router.push('/student/courses');
               break;
             case 'teacher':
-              router.push('/teacher/dashboard');
+              router.push('/teacher/courses');
               break;
             case 'admin':
-              router.push('/admin/dashboard');
+              router.push('/admin/users');
               break;
             default:
               router.push('/');

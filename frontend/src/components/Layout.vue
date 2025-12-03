@@ -2,14 +2,13 @@
   <el-container class="layout-container">
     <el-header class="layout-header">
       <div class="logo">
-        <img src="@/assets/logo.svg" alt="logo" />
         <span>智慧课堂</span>
       </div>
       <div class="user-info">
         <el-dropdown @command="handleCommand">
           <span class="el-dropdown-link">
             <el-avatar :size="32" class="user-avatar">{{ username.charAt(0).toUpperCase() }}</el-avatar>
-            <span>{{ username }}</span>
+            <span class="username-text">{{ username }}</span>
             <el-icon class="el-icon--right"><arrow-down /></el-icon>
           </span>
           <template #dropdown>
@@ -22,14 +21,19 @@
       </div>
     </el-header>
     <el-container>
-      <el-aside width="200px" class="layout-aside">
-        <el-menu :default-active="$route.path" class="el-menu-vertical-demo" router>
-          <!-- 公共菜单 -->
-          <el-menu-item :index="homePath">
-            <el-icon><home-filled /></el-icon>
-            <span>首页</span>
-          </el-menu-item>
-
+      <el-aside width="240px" class="layout-aside">
+        <div class="aside-profile">
+          <el-avatar :size="80" class="aside-avatar">{{ username.charAt(0).toUpperCase() }}</el-avatar>
+          <p class="aside-username">{{ username }}</p>
+        </div>
+        <el-menu
+          :default-active="$route.path"
+          class="el-menu-vertical-demo"
+          router
+          background-color="#34495E"
+          text-color="#a7b1c2"
+          active-text-color="#fff"
+        >
           <!-- 学生菜单 -->
           <template v-if="userRole === 'student'">
             <el-menu-item index="/student/courses">
@@ -79,7 +83,6 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   ArrowDown,
-  HomeFilled,
   Management,
   User,
   DataLine,
@@ -132,8 +135,9 @@ const handleCommand = (command: string | number | object) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #fff;
-  border-bottom: 1px solid #dcdfe6;
+  background: #7A88FF; /* Updated background color from image */
+  color: #fff; /* Updated text color */
+  border-bottom: none;
 }
 
 .logo {
@@ -141,37 +145,75 @@ const handleCommand = (command: string | number | object) => {
   align-items: center;
   font-size: 20px;
   font-weight: bold;
-}
-
-.logo img {
-  width: 32px;
-  height: 32px;
-  margin-right: 10px;
+  padding-left: 20px;
 }
 
 .user-info {
   display: flex;
   align-items: center;
+  gap: 20px;
+  padding-right: 20px;
 }
+
 
 .el-dropdown-link {
   cursor: pointer;
   display: flex;
   align-items: center;
+  color: #fff; /* Ensure dropdown link text is white */
+}
+
+.username-text {
+  margin: 0 8px;
 }
 
 .user-avatar {
-  margin-right: 8px;
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #5468ff;
+  font-weight: bold;
 }
 
 .layout-aside {
-  background-color: #fff;
-  border-right: 1px solid #dcdfe6;
+  background-color: #34495E; /* Updated sidebar background from image */
+  border-right: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.aside-profile {
+  padding: 30px 20px;
+  text-align: center;
+  color: #fff;
+}
+
+.aside-avatar {
+  width: 80px;
+  height: 80px;
+  font-size: 40px;
+  margin-bottom: 15px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.aside-username {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.el-menu-vertical-demo {
+  border-right: none;
+  flex-grow: 1;
 }
 
 .el-menu-vertical-demo:not(.el-menu--collapse) {
-  width: 200px;
-  min-height: 400px;
+  width: 240px;
+}
+
+.el-menu-item:hover, .el-sub-menu__title:hover {
+    background-color: #2c3e50 !important;
+}
+
+.el-menu-item.is-active {
+  background-color: #409EFF !important;
 }
 
 .layout-main {

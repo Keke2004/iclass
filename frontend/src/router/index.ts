@@ -23,31 +23,6 @@ const router = createRouter({
       meta: { requiresAuth: true },
       children: [
         {
-          path: '',
-          name: 'home',
-          redirect: '/dashboard'
-        },
-        {
-          path: 'dashboard',
-          name: 'dashboard',
-          component: HomeView // Temporarily use HomeView as dashboard
-        },
-        {
-          path: 'teacher/dashboard',
-          name: 'teacher-dashboard',
-          component: () => import('../views/teacher/Dashboard.vue')
-        },
-        {
-          path: 'student/dashboard',
-          name: 'student-dashboard',
-          component: () => import('../views/student/Dashboard.vue')
-        },
-        {
-          path: 'admin/dashboard',
-          name: 'admin-dashboard',
-          component: () => import('../views/admin/Dashboard.vue')
-        },
-        {
           path: '/about',
           name: 'about',
           // route level code-splitting
@@ -112,11 +87,11 @@ router.beforeEach((to, from, next) => {
   if (accessToken && userRole && (to.name === 'login' || to.name === 'register')) {
     switch (userRole) {
       case 'student':
-        return next('/student/dashboard');
+        return next('/student/courses');
       case 'teacher':
-        return next('/teacher/dashboard');
+        return next('/teacher/courses');
       case 'admin':
-        return next('/admin/dashboard');
+        return next('/admin/users');
       default:
         // 角色丢失或异常，登出
         localStorage.clear();
@@ -130,15 +105,16 @@ router.beforeEach((to, from, next) => {
       // 未登录 -> 重定向到登录页
       return next('/login');
     } else {
-      // 已登录，但访问的是根路径或通用dashboard -> 根据角色重定向
-      if (to.path === '/' || to.path === '/dashboard') {
+      // 已登录，但访问的是根路径或旧的dashboard -> 根据角色重定向
+      const oldDashboardPaths = ['/', '/dashboard', '/student/dashboard', '/teacher/dashboard', '/admin/dashboard'];
+      if (oldDashboardPaths.includes(to.path)) {
         switch (userRole) {
           case 'student':
-            return next('/student/dashboard');
+            return next('/student/courses');
           case 'teacher':
-            return next('/teacher/dashboard');
+            return next('/teacher/courses');
           case 'admin':
-            return next('/admin/dashboard');
+            return next('/admin/users');
           default:
             localStorage.clear();
             return next('/login');
