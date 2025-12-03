@@ -56,6 +56,14 @@
               <el-icon><user /></el-icon>
               <span>用户管理</span>
             </el-menu-item>
+            <el-menu-item index="/admin/statistics">
+              <el-icon><data-line /></el-icon>
+              <span>数据统计</span>
+            </el-menu-item>
+            <el-menu-item index="/admin/logs">
+              <el-icon><tickets /></el-icon>
+              <span>日志管理</span>
+            </el-menu-item>
           </template>
         </el-menu>
       </el-aside>
@@ -74,6 +82,8 @@ import {
   HomeFilled,
   Management,
   User,
+  DataLine,
+  Tickets,
 } from '@element-plus/icons-vue';
 
 const router = useRouter();

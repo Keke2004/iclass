@@ -1,4 +1,6 @@
 from rest_framework import viewsets, permissions, generics, status
+from django.db.models import Count
+from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -6,9 +8,20 @@ from .serializers import UserSerializer, MyTokenObtainPairSerializer, PasswordCh
 from .models import User
 from .permissions import IsAdminRole
 from .filters import UserFilter
+from logs.models import Log
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            username = request.data.get('username')
+            Log.objects.create(
+                level='INFO',
+                message=f'用户 {username} 登录成功'
+            )
+        return response
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -69,3 +82,20 @@ class PasswordChangeView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"detail": "密码修改成功"}, status=status.HTTP_200_OK)
+
+class UserStatisticsView(APIView):
+    """
+    API endpoint to get user statistics.
+    - Only accessible by admins.
+    - Provides counts of users by role.
+    """
+    permission_classes = [IsAdminRole]
+
+    def get(self, request, *args, **kwargs):
+        role_counts = User.objects.values('role').annotate(count=Count('id'))
+        
+        # The result is a list of dicts, e.g., [{'role': 'student', 'count': 10}]
+        # We can format this for a more consistent response structure if needed.
+        data = {item['role']: item['count'] for item in role_counts}
+        
+        return Response(data, status=status.HTTP_200_OK)
