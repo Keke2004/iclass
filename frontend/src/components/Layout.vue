@@ -217,7 +217,7 @@ const handleCommand = (command: string | number | object) => {
 }
 
 .layout-main {
-  padding: 20px;
   background-color: #f0f2f5;
+  padding: 20px;
 }
 </style>

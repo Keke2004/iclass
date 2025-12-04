@@ -1,4 +1,5 @@
 from rest_framework import viewsets, permissions, generics, status
+from rest_framework.pagination import PageNumberPagination
 from django.db.models import Count
 from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
@@ -9,6 +10,11 @@ from .models import User
 from .permissions import IsAdminRole
 from .filters import UserFilter
 from logs.models import Log
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -30,6 +36,7 @@ class UserViewSet(viewsets.ModelViewSet):
     - Other authenticated users can only view the user list (e.g., for selecting students).
     """
     serializer_class = UserSerializer
+    pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend]
     filterset_class = UserFilter
     
@@ -40,13 +47,14 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         if user.is_staff or user.role == 'admin':
-            return User.objects.all()
+            return User.objects.all().order_by('id')
         
-        queryset = User.objects.all()
+        # For non-admin users, filter by role if provided, otherwise return students and teachers
         role = self.request.query_params.get('role')
         if role:
-            queryset = queryset.filter(role=role)
-        return queryset
+            return User.objects.filter(role=role).order_by('id')
+        else:
+            return User.objects.filter(role__in=['student', 'teacher']).order_by('id')
 
     def get_permissions(self):
         """

@@ -42,6 +42,16 @@
       </el-table-column>
     </el-table>
 
+    <el-pagination
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :current-page="currentPage"
+      :page-sizes="[10, 20, 50, 100]"
+      :page-size="pageSize"
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="totalUsers">
+    </el-pagination>
+
     <!-- 编辑用户对话框 -->
     <el-dialog v-model="editDialogVisible" title="编辑用户">
       <el-form v-if="currentUser" :model="currentUser" label-width="80px">
@@ -108,6 +118,9 @@ const users = ref<User[]>([]);
 const loading = ref(true);
 const editDialogVisible = ref(false);
 const currentUser = ref<User | null>(null);
+const currentPage = ref(1);
+const pageSize = ref(10);
+const totalUsers = ref(0);
 
 const initialFilters = {
   username: '',
@@ -122,7 +135,10 @@ const filters = ref({ ...initialFilters });
 const fetchUsers = async () => {
   loading.value = true;
   try {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams({
+      page: currentPage.value.toString(),
+      page_size: pageSize.value.toString(),
+    });
     // Iterate over the filters object and append non-empty values to params
     for (const key in filters.value) {
       const value = filters.value[key as keyof typeof filters.value];
@@ -131,7 +147,8 @@ const fetchUsers = async () => {
       }
     }
     const response = await apiClient.get(`/users/`, { params });
-    users.value = response.data;
+    users.value = response.data.results;
+    totalUsers.value = response.data.count;
   } catch (error) {
     console.error('获取用户列表失败:', error);
     ElMessage.error('无法加载用户列表。');
@@ -141,11 +158,24 @@ const fetchUsers = async () => {
 };
 
 const handleSearch = () => {
+  currentPage.value = 1;
   fetchUsers();
 };
 
 const resetFilters = () => {
   filters.value = { ...initialFilters };
+  currentPage.value = 1;
+  fetchUsers();
+};
+
+const handleSizeChange = (val: number) => {
+  pageSize.value = val;
+  currentPage.value = 1;
+  fetchUsers();
+};
+
+const handleCurrentChange = (val: number) => {
+  currentPage.value = val;
   fetchUsers();
 };
 
@@ -213,5 +243,9 @@ onMounted(() => {
 .actions {
   display: flex;
   gap: 10px;
+}
+.el-pagination {
+  margin-top: 20px;
+  justify-content: flex-end;
 }
 </style>
