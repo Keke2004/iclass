@@ -121,7 +121,7 @@ const fetchAllStudents = async () => {
   try {
     // 假设有一个 /api/users/students/ 的端点来获取所有学生
     const response = await apiClient.get('/users/?role=student');
-    allStudents.value = response.data;
+    allStudents.value = response.data.results;
   } catch (error) {
     console.error('获取学生列表失败:', error);
     ElMessage.error('无法加载学生列表。');

@@ -44,17 +44,28 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         - Admins see all users.
         - Teachers/Students can see a list of users filtered by role.
+        - Can exclude users from a specific course.
         """
         user = self.request.user
+        queryset = User.objects.all()
+
+        # Exclude users from a specific course if `exclude_course` is provided
+        exclude_course_id = self.request.query_params.get('exclude_course')
+        if exclude_course_id:
+            try:
+                # We need to import Course model here to avoid circular dependency
+                from courses.models import Course
+                course = Course.objects.get(id=exclude_course_id)
+                queryset = queryset.exclude(id__in=course.students.all())
+            except (Course.DoesNotExist, ValueError):
+                # Handle cases where course_id is invalid or not found
+                pass
+
         if user.is_staff or user.role == 'admin':
-            return User.objects.all().order_by('id')
+            return queryset.order_by('id')
         
-        # For non-admin users, filter by role if provided, otherwise return students and teachers
-        role = self.request.query_params.get('role')
-        if role:
-            return User.objects.filter(role=role).order_by('id')
-        else:
-            return User.objects.filter(role__in=['student', 'teacher']).order_by('id')
+        # For non-admin users, default to showing only students and teachers
+        return queryset.filter(role__in=['student', 'teacher']).order_by('id')
 
     def get_permissions(self):
         """
