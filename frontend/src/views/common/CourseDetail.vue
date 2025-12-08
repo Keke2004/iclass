@@ -6,8 +6,7 @@
     <div v-else-if="error" class="error-state">
       <p>{{ error }}</p>
     </div>
-    <div v-else-if="course">
-      <el-container class="course-layout">
+    <el-container v-else-if="course" class="course-layout">
         <el-aside width="200px" class="course-sidebar">
           <div class="course-title-container">
             <h2 class="course-title">{{ course.name }}</h2>
@@ -49,22 +48,16 @@
           </el-menu>
         </el-aside>
         <el-main class="course-content">
-          <component :is="currentComponent"></component>
-          <!-- 其他模块的占位符 -->
+          <router-view></router-view>
         </el-main>
       </el-container>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, shallowRef } from 'vue';
+import { ref, onMounted, watchEffect } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import apiClient from '../../services/api';
-import ChapterManager from './ChapterManager.vue';
-import AnnouncementManager from './AnnouncementManager.vue';
-import MemberManager from './MemberManager.vue';
-import { ElMessage, ElContainer, ElAside, ElMain, ElMenu, ElMenuItem, ElIcon, ElButton } from 'element-plus';
 import {
   Menu as ElIconMenu,
   Notebook as ElIconNotebook,
@@ -75,7 +68,7 @@ import {
   Folder as ElIconFolder,
   User as ElIconUser
 } from '@element-plus/icons-vue';
-
+import { ElMessage, ElContainer, ElAside, ElMain, ElMenu, ElMenuItem, ElIcon, ElButton } from 'element-plus';
 
 interface Course {
   id: number;
@@ -88,24 +81,43 @@ const router = useRouter();
 const course = ref<Course | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
-const activeMenu = ref('tasks');
-const currentComponent = shallowRef(null);
+const activeMenu = ref('tasks'); // 默认激活任务区
+const courseId = route.params.id as string;
 
-const courseId = route.params.id;
+// 路由名称到菜单索引的映射
+const routeNameToMenuIndex: { [key: string]: string } = {
+  'course-tasks': 'tasks',
+  'course-discussions': 'discussions',
+  'course-chapters': 'chapters',
+  'course-members': 'members',
+  'course-announcements': 'announcements',
+  // 其他映射
+};
 
 const handleMenuSelect = (index: string) => {
-  activeMenu.value = index;
-  if (index === 'chapters') {
-    currentComponent.value = ChapterManager;
-  } else if (index === 'announcements') {
-    currentComponent.value = AnnouncementManager;
-  } else if (index === 'members') {
-    currentComponent.value = MemberManager;
-  } else {
-    currentComponent.value = null;
+  // 菜单索引到路由名称的映射
+  const menuIndexToRouteName: { [key: string]: string } = {
+    tasks: 'course-tasks',
+    discussions: 'course-discussions',
+    chapters: 'course-chapters',
+    members: 'course-members',
+    announcements: 'course-announcements',
+    // 其他映射
+  };
+  const routeName = menuIndexToRouteName[index];
+  if (routeName) {
+    router.push({ name: routeName, params: { id: courseId } });
   }
-  // 未来这里可以与子路由结合
 };
+
+// 监听路由变化，更新激活的菜单项
+watchEffect(() => {
+  const currentRouteName = route.name as string;
+  const menuIndex = routeNameToMenuIndex[currentRouteName];
+  if (menuIndex) {
+    activeMenu.value = menuIndex;
+  }
+});
 
 const fetchCourseDetail = async () => {
   try {
@@ -121,7 +133,15 @@ const fetchCourseDetail = async () => {
 };
 
 const goBack = () => {
-  router.back();
+  const userRole = localStorage.getItem('user_role');
+  if (userRole === 'teacher') {
+    router.push({ name: 'teacher-courses' });
+  } else if (userRole === 'student') {
+    router.push({ name: 'student-courses' });
+  } else {
+    // 如果没有角色信息，可以跳转到首页或登录页作为后备
+    router.push('/');
+  }
 };
 
 onMounted(() => {
@@ -131,7 +151,9 @@ onMounted(() => {
 
 <style scoped>
 .course-detail-container {
-  height: calc(100vh - 60px); /* 减去顶部导航栏的高度 */
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 .loading-state, .error-state {
   text-align: center;
@@ -139,7 +161,8 @@ onMounted(() => {
   padding: 40px;
 }
 .course-layout {
-  height: 100%;
+  flex-grow: 1;
+  display: flex;
 }
 .course-sidebar {
   background-color: #f4f6f8;
@@ -158,8 +181,10 @@ onMounted(() => {
 .course-menu {
   border-right: none;
   flex-grow: 1;
+  min-height: 0;
 }
 .course-content {
   padding: 20px;
+  overflow: auto;
 }
 </style>

@@ -56,7 +56,42 @@ const router = createRouter({
         {
           path: 'courses/:id',
           name: 'course-detail',
-          component: () => import('../views/common/CourseDetail.vue')
+          component: () => import('../views/common/CourseDetail.vue'),
+          redirect: to => ({ name: 'course-tasks', params: { id: to.params.id } }),
+          children: [
+            {
+              path: 'tasks',
+              name: 'course-tasks',
+              component: () => import('@/views/common/TaskManager.vue') // 假设任务组件路径
+            },
+            {
+              path: 'discussions',
+              name: 'course-discussions',
+              component: () => import('@/views/common/DiscussionManager.vue')
+            },
+            {
+              path: 'discussions/:topicId',
+              name: 'course-discussion-detail',
+              component: () => import('@/views/common/DiscussionTopicDetail.vue'),
+              props: true
+            },
+            {
+              path: 'chapters',
+              name: 'course-chapters',
+              component: () => import('@/views/common/ChapterManager.vue')
+            },
+            {
+              path: 'members',
+              name: 'course-members',
+              component: () => import('@/views/common/MemberManager.vue')
+            },
+            {
+              path: 'announcements',
+              name: 'course-announcements',
+              component: () => import('@/views/common/AnnouncementManager.vue')
+            }
+            // 其他子路由可以根据需要在这里添加
+          ]
         },
         // Admin Routes
         {

@@ -68,3 +68,29 @@ class Discussion(models.Model):
 
     def __str__(self):
         return f'{self.student.username}: {self.message[:50]}'
+
+class DiscussionTopic(models.Model):
+    """
+    讨论区话题模型
+    """
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='discussion_topics', verbose_name='所属课程')
+    title = models.CharField(max_length=255, verbose_name='话题标题')
+    content = models.TextField(verbose_name='话题内容')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='discussion_topics', verbose_name='发布者')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='发布时间')
+
+    def __str__(self):
+        return self.title
+
+class DiscussionReply(models.Model):
+    """
+    讨论区回复模型
+    """
+    topic = models.ForeignKey(DiscussionTopic, on_delete=models.CASCADE, related_name='replies', verbose_name='所属话题')
+    content = models.TextField(verbose_name='回复内容')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='discussion_replies', verbose_name='回复者')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='回复时间')
+    parent_reply = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='child_replies', verbose_name='父回复')
+
+    def __str__(self):
+        return f'{self.author.username}: {self.content[:50]}'

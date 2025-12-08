@@ -144,7 +144,6 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 .student-card {
-  margin-top: 20px;
 }
 .card-header {
   display: flex;

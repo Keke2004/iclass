@@ -1,4 +1,21 @@
 from rest_framework import permissions
+from .models import Course
+
+class IsCourseMember(permissions.BasePermission):
+    """
+    Custom permission to only allow members of a course to view it.
+    """
+    def has_permission(self, request, view):
+        course_id = view.kwargs.get('course_id') or view.kwargs.get('pk')
+        if not course_id:
+            return False
+        
+        try:
+            course = Course.objects.get(pk=course_id)
+        except Course.DoesNotExist:
+            return False
+            
+        return request.user in course.students.all() or request.user == course.teacher
 
 class IsTeacherOrReadOnly(permissions.BasePermission):
     """
@@ -25,3 +42,16 @@ class IsTeacherOrReadOnly(permissions.BasePermission):
         if hasattr(obj, 'course'):
             return obj.course.teacher == request.user
         return obj.teacher == request.user
+
+class IsAuthorOrTeacherOrReadOnly(permissions.BasePermission):
+    """
+    Custom permission to only allow authors of an object or the course teacher to edit it.
+    """
+    def has_object_permission(self, request, view, obj):
+        # Read permissions are allowed to any request,
+        # so we'll always allow GET, HEAD or OPTIONS requests.
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        # Write permissions are only allowed to the author of the object or the course teacher.
+        return obj.author == request.user or obj.course.teacher == request.user

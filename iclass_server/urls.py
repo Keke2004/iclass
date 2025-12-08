@@ -30,4 +30,5 @@ urlpatterns = [
     path("api/", include('assignments.urls')),
     path("api/", include('feedback.urls')),
     path("api/", include('logs.urls')),
+    path("api/", include('interaction.urls')),
 ]
