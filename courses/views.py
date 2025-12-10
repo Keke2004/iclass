@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.http import FileResponse
 from django.conf import settings
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from users.models import User
