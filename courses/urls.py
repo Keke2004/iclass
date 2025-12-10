@@ -10,6 +10,7 @@ courses_router.register(r'chapters', ChapterViewSet, basename='course-chapters')
 courses_router.register(r'announcements', AnnouncementViewSet, basename='course-announcements')
 courses_router.register(r'materials', CourseMaterialViewSet, basename='course-materials')
 
+
 urlpatterns = [
     path('', include(router.urls)),
     path('', include(courses_router.urls)),

@@ -19,12 +19,14 @@ class CourseMaterial(models.Model):
     课程资料模型
     """
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='materials', verbose_name='所属课程')
-    title = models.CharField(max_length=100, verbose_name='资料标题')
+    name = models.CharField(max_length=255, verbose_name='资料名称', default='')
     file = models.FileField(upload_to='course_materials/', verbose_name='文件')
+    size = models.BigIntegerField(verbose_name='文件大小', default=0)
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_materials', verbose_name='上传者', null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='上传时间')
 
     def __str__(self):
-        return self.title
+        return self.name
 
 class Announcement(models.Model):
     """

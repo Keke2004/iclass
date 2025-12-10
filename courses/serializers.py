@@ -33,9 +33,12 @@ class CourseMaterialSerializer(serializers.ModelSerializer):
     """
     课程资料序列化器
     """
+    uploaded_by = BasicUserSerializer(read_only=True)
+
     class Meta:
         model = CourseMaterial
-        fields = '__all__'
+        fields = ['id', 'name', 'file', 'size', 'uploaded_by', 'uploaded_at', 'course']
+        read_only_fields = ['course', 'size', 'uploaded_by']
 
 class AnnouncementSerializer(serializers.ModelSerializer):
     """

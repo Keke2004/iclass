@@ -91,6 +91,7 @@ const routeNameToMenuIndex: { [key: string]: string } = {
   'course-chapters': 'chapters',
   'course-members': 'members',
   'course-announcements': 'announcements',
+  'course-materials': 'materials',
   // 其他映射
 };
 
@@ -102,6 +103,7 @@ const handleMenuSelect = (index: string) => {
     chapters: 'course-chapters',
     members: 'course-members',
     announcements: 'course-announcements',
+    materials: 'course-materials',
     // 其他映射
   };
   const routeName = menuIndexToRouteName[index];

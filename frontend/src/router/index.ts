@@ -89,6 +89,11 @@ const router = createRouter({
               path: 'announcements',
               name: 'course-announcements',
               component: () => import('@/views/common/AnnouncementManager.vue')
+            },
+            {
+              path: 'materials',
+              name: 'course-materials',
+              component: () => import('@/views/common/CourseMaterialManager.vue')
             }
             // 其他子路由可以根据需要在这里添加
           ]

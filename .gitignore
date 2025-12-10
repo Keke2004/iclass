@@ -34,6 +34,9 @@ venv/
 db.sqlite3
 *.sqlite3
 
+# Media files
+media/
+
 # Django
 local_settings.py
 
