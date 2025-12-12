@@ -1,6 +1,10 @@
+import os
+import re
+import mimetypes
 from django.shortcuts import get_object_or_404
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponse, Http404
 from django.conf import settings
+from django.views.decorators.clickjacking import xframe_options_exempt
 from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -19,23 +23,19 @@ class ChapterViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Filter chapters by the course specified in the URL.
+        - For list view, only top-level chapters are returned.
+        - For detail view (retrieve, update, delete), all chapters are considered.
         """
-        return Chapter.objects.filter(course_id=self.kwargs['course_pk'])
-
-    def get_object(self):
-        """
-        Retrieve a specific chapter by its pk, filtered by the course_pk.
-        """
-        queryset = self.get_queryset()
-        chapter = get_object_or_404(queryset, pk=self.kwargs['pk'])
-        self.check_object_permissions(self.request, chapter)
-        return chapter
+        queryset = Chapter.objects.filter(course_id=self.kwargs['course_pk'])
+        if self.action == 'list':
+            return queryset.filter(parent__isnull=True)
+        return queryset
 
     def perform_create(self, serializer):
         """
         Associate the chapter with the course from the URL.
         """
-        course = Course.objects.get(pk=self.kwargs['course_pk'])
+        course = get_object_or_404(Course, pk=self.kwargs['course_pk'])
         serializer.save(course=course)
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -159,6 +159,7 @@ class CourseMaterialViewSet(viewsets.ModelViewSet):
         )
 
     @action(detail=True, methods=['get'])
+    @xframe_options_exempt
     def download(self, request, pk=None, course_pk=None):
         """
         提供文件下载。
@@ -220,3 +221,54 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
         """
         course = Course.objects.get(pk=self.kwargs['course_pk'])
         serializer.save(course=course)
+
+
+def ranged_media_view(request, path):
+    """
+    A view that serves media files and supports HTTP Range requests.
+    This is necessary for video seeking (fast-forwarding and rewinding) in browsers.
+    """
+    # Construct the full path to the file
+    full_path = os.path.join(settings.MEDIA_ROOT, path)
+    
+    # Check if the file exists
+    if not os.path.exists(full_path):
+        raise Http404("File not found")
+
+    # Get file size and content type
+    file_size = os.path.getsize(full_path)
+    content_type, _ = mimetypes.guess_type(full_path)
+    content_type = content_type or 'application/octet-stream'
+    
+    # Handle Range header
+    range_header = request.META.get('HTTP_RANGE', '').strip()
+    range_re = re.compile(r'bytes\s*=\s*(\d+)\s*-\s*(\d*)', re.I)
+    range_match = range_re.match(range_header)
+    
+    if range_match:
+        first_byte, last_byte = range_match.groups()
+        first_byte = int(first_byte) if first_byte else 0
+        last_byte = int(last_byte) if last_byte else file_size - 1
+        
+        if last_byte >= file_size:
+            last_byte = file_size - 1
+            
+        length = last_byte - first_byte + 1
+        
+        response = HttpResponse(status=206)
+        response['Content-Type'] = content_type
+        response['Content-Length'] = str(length)
+        response['Content-Range'] = f'bytes {first_byte}-{last_byte}/{file_size}'
+        response['Accept-Ranges'] = 'bytes'
+        
+        with open(full_path, 'rb') as f:
+            f.seek(first_byte)
+            response.content = f.read(length)
+        
+        return response
+    else:
+        # Serve the whole file if no Range header
+        response = FileResponse(open(full_path, 'rb'), content_type=content_type)
+        response['Content-Length'] = str(file_size)
+        response['Accept-Ranges'] = 'bytes'
+        return response

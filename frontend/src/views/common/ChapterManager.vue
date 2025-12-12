@@ -1,42 +1,68 @@
 <template>
   <div class="chapter-manager-container">
     <div class="header">
-      <h2>课程章节</h2>
-      <el-button v-if="isTeacher" type="primary" @click="openAddChapterDialog">添加新章节</el-button>
+      <h3>课程目录</h3>
+      <el-button v-if="isTeacher" type="primary" @click="openAddChapterDialog(null)">添加章</el-button>
     </div>
 
-    <div v-if="chapters.length > 0" class="chapter-list">
-      <div v-for="(chapter, index) in chapters" :key="chapter.id" class="chapter-item">
-        <div class="chapter-item-header" @click="toggleChapter(chapter.id)">
-          <div class="chapter-number" :class="{ active: activeChapterId === chapter.id }">{{ index + 1 }}</div>
-          <div class="chapter-title">{{ chapter.title }}</div>
-          <div v-if="isTeacher" class="chapter-actions">
-            <el-button type="primary" link @click.stop="openEditChapterDialog(chapter)">编辑</el-button>
+    <el-tree
+      v-if="chapters.length > 0"
+      :data="chapters"
+      :props="treeProps"
+      node-key="id"
+      default-expand-all
+      :expand-on-click-node="false"
+      @node-click="handleChapterSelect"
+      class="chapter-tree"
+    >
+      <template #default="{ node, data }">
+        <span class="custom-tree-node">
+          <span>{{ node.label }}</span>
+          <span v-if="isTeacher" class="node-actions">
+            <el-button type="primary" link size="small" @click.stop="openAddChapterDialog(data)">添加节</el-button>
+            <el-button type="primary" link size="small" @click.stop="openEditChapterDialog(data)">编辑</el-button>
             <el-popconfirm
               title="确定要删除这个章节吗？"
-              confirm-button-text="确认"
-              cancel-button-text="取消"
-              @confirm="deleteChapter(chapter.id)"
+              @confirm.stop="deleteChapter(data.id)"
             >
               <template #reference>
-                <el-button type="danger" link @click.stop>删除</el-button>
+                <el-button type="danger" link size="small" @click.stop>删除</el-button>
               </template>
             </el-popconfirm>
-          </div>
-        </div>
-        <div v-if="activeChapterId === chapter.id" class="chapter-content" v-html="chapter.content"></div>
-      </div>
-    </div>
+          </span>
+        </span>
+      </template>
+    </el-tree>
     <el-empty v-else description="暂无章节内容"></el-empty>
 
     <!-- 添加/编辑章节对话框 -->
-    <el-dialog v-model="dialogVisible" :title="isEditing ? '编辑章节' : '添加新章节'" width="60%">
-      <el-form :model="chapterForm" label-width="80px">
-        <el-form-item label="章节标题">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="60%">
+      <el-form :model="chapterForm" label-width="100px">
+        <el-form-item label="标题">
           <el-input v-model="chapterForm.title"></el-input>
         </el-form-item>
-        <el-form-item label="章节内容">
-          <el-input type="textarea" :rows="10" v-model="chapterForm.content"></el-input>
+        <el-form-item label="内容（可选）">
+          <el-input type="textarea" :rows="5" v-model="chapterForm.content"></el-input>
+        </el-form-item>
+        <el-form-item label="视频文件（可选）">
+          <el-upload
+            :auto-upload="false"
+            :on-change="handleVideoChange"
+            :file-list="videoFileList"
+            :limit="1"
+          >
+            <el-button type="primary">选择视频</el-button>
+          </el-upload>
+        </el-form-item>
+        <el-form-item label="PDF文件（可选）">
+          <el-upload
+            :auto-upload="false"
+            :on-change="handlePdfChange"
+            :file-list="pdfFileList"
+            :limit="1"
+          >
+            <el-button type="primary">选择PDF</el-button>
+          </el-upload>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -50,36 +76,69 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, onMounted, computed, defineProps, defineEmits } from 'vue';
 import apiClient from '../../services/api';
-import { ElMessage, ElButton, ElDialog, ElForm, ElFormItem, ElInput, ElEmpty, ElPopconfirm } from 'element-plus';
+import { ElMessage, ElButton, ElDialog, ElForm, ElFormItem, ElInput, ElEmpty, ElPopconfirm, ElTree, ElUpload } from 'element-plus';
+import type { UploadFile } from 'element-plus';
 
 interface Chapter {
   id: number;
   title: string;
   content: string;
+  parent?: number | null;
+  children?: Chapter[];
+  video?: string;
+  pdf?: string;
 }
 
-const route = useRoute();
-const courseId = route.params.id;
+const props = defineProps<{
+  courseId: string;
+}>();
+
+const emit = defineEmits<{
+  (e: 'select-chapter', chapter: Chapter): void;
+}>();
 
 const chapters = ref<Chapter[]>([]);
-const activeChapterId = ref<number | null>(null);
 const dialogVisible = ref(false);
 const isEditing = ref(false);
-const chapterForm = ref({
-  id: null as number | null,
+const chapterForm = ref<{
+  id: number | null;
+  title: string;
+  content: string;
+  parent: number | null;
+  video: File | null;
+  pdf: File | null;
+}>({
+  id: null,
   title: '',
-  content: ''
+  content: '',
+  parent: null,
+  video: null,
+  pdf: null,
+});
+
+const videoFileList = ref<UploadFile[]>([]);
+const pdfFileList = ref<UploadFile[]>([]);
+
+const dialogTitle = computed(() => {
+  if (!isEditing.value) {
+    return chapterForm.value.parent ? '添加新节' : '添加新章';
+  }
+  return '编辑章节';
 });
 
 const userRole = localStorage.getItem('user_role');
 const isTeacher = computed(() => userRole === 'teacher');
 
+const treeProps = {
+  children: 'children',
+  label: 'title',
+};
+
 const fetchChapters = async () => {
   try {
-    const response = await apiClient.get(`/courses/${courseId}/chapters/`);
+    const response = await apiClient.get(`/courses/${props.courseId}/chapters/`);
     chapters.value = response.data;
   } catch (error) {
     console.error('获取章节列表失败:', error);
@@ -87,33 +146,77 @@ const fetchChapters = async () => {
   }
 };
 
-const toggleChapter = (chapterId: number) => {
-  if (activeChapterId.value === chapterId) {
-    activeChapterId.value = null; // Collapse if already active
-  } else {
-    activeChapterId.value = chapterId; // Expand new one
-  }
+const handleChapterSelect = (chapter: Chapter) => {
+  emit('select-chapter', chapter);
 };
 
-const openAddChapterDialog = () => {
+const openAddChapterDialog = (parentChapter: Chapter | null) => {
   isEditing.value = false;
-  chapterForm.value = { id: null, title: '', content: '' };
+  chapterForm.value = {
+    id: null,
+    title: '',
+    content: '',
+    parent: parentChapter ? parentChapter.id : null,
+    video: null,
+    pdf: null,
+  };
+  videoFileList.value = [];
+  pdfFileList.value = [];
   dialogVisible.value = true;
 };
 
 const openEditChapterDialog = (chapter: Chapter) => {
   isEditing.value = true;
-  chapterForm.value = { ...chapter };
+  chapterForm.value = {
+    id: chapter.id,
+    title: chapter.title,
+    content: chapter.content,
+    parent: chapter.parent || null,
+    video: null, // 编辑时不直接显示旧文件，需要重新上传
+    pdf: null,
+  };
+  videoFileList.value = [];
+  pdfFileList.value = [];
   dialogVisible.value = true;
 };
 
+const handleVideoChange = (file: UploadFile) => {
+  chapterForm.value.video = file.raw as File;
+};
+
+const handlePdfChange = (file: UploadFile) => {
+  chapterForm.value.pdf = file.raw as File;
+};
+
 const saveChapter = async () => {
+  if (!chapterForm.value.title.trim()) {
+    ElMessage.error('请输入章节标题。');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('title', chapterForm.value.title);
+  formData.append('content', chapterForm.value.content);
+  if (chapterForm.value.parent) {
+    formData.append('parent', String(chapterForm.value.parent));
+  }
+  if (chapterForm.value.video) {
+    formData.append('video', chapterForm.value.video);
+  }
+  if (chapterForm.value.pdf) {
+    formData.append('pdf', chapterForm.value.pdf);
+  }
+
   try {
     if (isEditing.value && chapterForm.value.id) {
-      await apiClient.put(`/courses/${courseId}/chapters/${chapterForm.value.id}/`, chapterForm.value);
+      await apiClient.patch(`/courses/${props.courseId}/chapters/${chapterForm.value.id}/`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       ElMessage.success('章节更新成功！');
     } else {
-      await apiClient.post(`/courses/${courseId}/chapters/`, chapterForm.value);
+      await apiClient.post(`/courses/${props.courseId}/chapters/`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       ElMessage.success('章节添加成功！');
     }
     dialogVisible.value = false;
@@ -126,7 +229,7 @@ const saveChapter = async () => {
 
 const deleteChapter = async (chapterId: number) => {
   try {
-    await apiClient.delete(`/courses/${courseId}/chapters/${chapterId}/`);
+    await apiClient.delete(`/courses/${props.courseId}/chapters/${chapterId}/`);
     ElMessage.success('章节删除成功！');
     await fetchChapters();
   } catch (error) {
@@ -142,88 +245,40 @@ onMounted(() => {
 
 <style scoped>
 .chapter-manager-container {
-  padding: 24px;
-  background-color: #f5f7fa;
+  padding: 16px;
+  background-color: #fff;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-}
-
-.chapter-list {
-  position: relative;
-}
-
-.chapter-item {
-  background-color: #fff;
-  border-radius: 8px;
   margin-bottom: 16px;
-  transition: box-shadow 0.3s;
+  padding: 0 8px;
 }
 
-.chapter-item:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.chapter-item-header {
-  display: flex;
-  align-items: center;
-  padding: 16px 24px;
-  cursor: pointer;
-}
-
-.chapter-number {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background-color: #e0e0e0;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  margin-right: 16px;
-  flex-shrink: 0;
-  transition: background-color 0.3s;
-}
-
-.chapter-number.active {
-    background-color: #409eff;
-}
-
-.chapter-title {
+.chapter-tree {
   flex-grow: 1;
-  font-size: 16px;
-  font-weight: 500;
+  overflow-y: auto;
 }
 
-.chapter-actions {
-  margin-left: auto;
+.custom-tree-node {
+  flex: 1;
   display: flex;
-  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  padding-right: 8px;
 }
 
-.chapter-content {
-  padding: 0 24px 16px 72px; /* 24px + 32px + 16px */
-  color: #606266;
-  line-height: 1.8;
-  border-top: 1px solid #ebeef5;
-  margin-top: -1px;
-  padding-top: 16px;
+.node-actions {
+  display: none;
 }
 
-/* Vertical line */
-.chapter-list::before {
-  content: '';
-  position: absolute;
-  left: 40px; /* (24px padding + 16px) */
-  top: 16px;
-  bottom: 16px;
-  width: 2px;
-  background-color: #e0e0e0;
-  transform: translateX(-50%);
+.el-tree-node__content:hover .node-actions {
+  display: inline-block;
 }
 </style>

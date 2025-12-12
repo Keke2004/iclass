@@ -45,8 +45,11 @@ class Chapter(models.Model):
     课程章节模型
     """
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='chapters', verbose_name='所属课程')
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children', verbose_name='父章节')
     title = models.CharField(max_length=100, verbose_name='章节标题')
     content = models.TextField(verbose_name='章节内容', blank=True, null=True)
+    video = models.FileField(upload_to='chapter_videos/', blank=True, null=True, verbose_name='章节视频')
+    pdf = models.FileField(upload_to='chapter_pdfs/', blank=True, null=True, verbose_name='章节PDF')
     order = models.PositiveIntegerField(default=0, verbose_name='章节顺序')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
 
@@ -54,4 +57,6 @@ class Chapter(models.Model):
         ordering = ['order']
 
     def __str__(self):
+        if self.parent:
+            return f"{self.parent.title} - {self.title}"
         return f"{self.course.name} - {self.title}"

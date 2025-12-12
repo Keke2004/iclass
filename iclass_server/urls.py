@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import (
@@ -36,4 +36,10 @@ urlpatterns = [
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    from courses.views import ranged_media_view
+    # 使用 re_path 来捕获所有 media 文件路径
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', ranged_media_view, name='ranged_media_view'),
+    ]
+    # 保留 static() 以便处理其他静态文件，但我们的 ranged 视图会优先处理 media
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
