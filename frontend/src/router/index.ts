@@ -77,7 +77,7 @@ const router = createRouter({
             },
             {
               path: 'chapters',
-              name: 'course-chapters',
+              name: 'chapter-manager',
               component: () => import('@/views/common/ChapterManager.vue')
             },
             {
@@ -94,6 +94,12 @@ const router = createRouter({
               path: 'materials',
               name: 'course-materials',
               component: () => import('@/views/common/CourseMaterialManager.vue')
+            },
+            {
+              path: 'sections/:sectionId',
+              name: 'section-detail',
+              component: () => import('../views/common/SectionDetail.vue'),
+              props: true
             }
             // 其他子路由可以根据需要在这里添加
           ]

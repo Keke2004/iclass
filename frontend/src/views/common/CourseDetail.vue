@@ -51,38 +51,8 @@
 
       <!-- 右侧内容区 -->
       <el-container class="main-content-container">
-        <!-- 章节视图 -->
-        <template v-if="activeMenu === 'chapters'">
-          <el-aside width="300px" class="chapter-list-sidebar">
-            <ChapterManager :course-id="courseId" @select-chapter="handleChapterSelect" />
-          </el-aside>
-          <el-main class="chapter-content-main">
-            <div v-if="selectedChapter" class="chapter-content-display">
-              <h3>{{ selectedChapter.title }}</h3>
-              
-              <!-- 富文本内容 -->
-              <div v-if="selectedChapter.content" v-html="selectedChapter.content" class="rich-text-content"></div>
-
-              <!-- 视频播放器 -->
-              <div v-if="selectedChapter.video" class="media-container">
-                <h4>视频</h4>
-                <video controls :src="selectedChapter.video" class="video-player"></video>
-              </div>
-
-              <!-- PDF 预览 -->
-              <div v-if="selectedChapter.pdf" class="media-container">
-                <h4>PDF 文档</h4>
-                <embed :src="selectedChapter.pdf" type="application/pdf" class="pdf-viewer" />
-              </div>
-
-            </div>
-            <div v-else class="chapter-placeholder">
-              <p>请在左侧选择一个章节来查看内容。</p>
-            </div>
-          </el-main>
-        </template>
-        <!-- 其他视图 -->
-        <el-main v-else class="course-content">
+        <!-- 统一的内容视图 -->
+        <el-main class="course-content">
           <router-view></router-view>
         </el-main>
       </el-container>
@@ -94,7 +64,6 @@
 import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import apiClient from '../../services/api';
-import ChapterManager from './ChapterManager.vue';
 import {
   Menu as ElIconMenu,
   Notebook as ElIconNotebook,
@@ -106,15 +75,6 @@ import {
   User as ElIconUser
 } from '@element-plus/icons-vue';
 import { ElMessage, ElContainer, ElAside, ElMain, ElMenu, ElMenuItem, ElIcon, ElButton } from 'element-plus';
-
-interface Chapter {
-  id: number;
-  title: string;
-  content: string;
-  video?: string;
-  pdf?: string;
-  children?: Chapter[];
-}
 
 interface Course {
   id: number;
@@ -129,39 +89,30 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const courseId = computed(() => route.params.id as string);
 const activeMenu = ref('tasks');
-const selectedChapter = ref<Chapter | null>(null);
 
 const routeNameToMenuIndex: { [key: string]: string } = {
   'course-tasks': 'tasks',
   'course-discussions': 'discussions',
-  'course-chapters': 'chapters',
+  'chapter-manager': 'chapters',
+  'section-detail': 'chapters',
   'course-members': 'members',
   'course-announcements': 'announcements',
   'course-materials': 'materials',
 };
 
 const handleMenuSelect = (index: string) => {
-  if (index === 'chapters') {
-    activeMenu.value = 'chapters';
-    // 更新URL，但不完全依赖路由来管理状态
-    router.push({ name: 'course-chapters', params: { id: courseId.value } });
-  } else {
-    const menuIndexToRouteName: { [key: string]: string } = {
-      tasks: 'course-tasks',
-      discussions: 'course-discussions',
-      members: 'course-members',
-      announcements: 'course-announcements',
-      materials: 'course-materials',
-    };
-    const routeName = menuIndexToRouteName[index];
-    if (routeName) {
-      router.push({ name: routeName, params: { id: courseId.value } });
-    }
+  const menuIndexToRouteName: { [key: string]: string } = {
+    tasks: 'course-tasks',
+    discussions: 'course-discussions',
+    chapters: 'chapter-manager',
+    members: 'course-members',
+    announcements: 'course-announcements',
+    materials: 'course-materials',
+  };
+  const routeName = menuIndexToRouteName[index];
+  if (routeName) {
+    router.push({ name: routeName, params: { id: courseId.value } });
   }
-};
-
-const handleChapterSelect = (chapter: Chapter) => {
-  selectedChapter.value = chapter;
 };
 
 watch(
@@ -209,7 +160,6 @@ onMounted(() => {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 60px); /* 假设顶部导航栏高度为 60px */
 }
 .loading-state, .error-state {
   text-align: center;
@@ -245,48 +195,6 @@ onMounted(() => {
   display: flex;
   flex-grow: 1;
   height: 100%;
-}
-.chapter-list-sidebar {
-  border-right: 1px solid #e0e0e0;
-  height: 100%;
-  overflow-y: auto;
-}
-.chapter-content-main {
-  padding: 20px;
-  overflow-y: auto;
-  height: 100%;
-}
-.chapter-placeholder {
-  text-align: center;
-  color: #909399;
-  padding-top: 50px;
-}
-.chapter-content-display h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-}
-.rich-text-content {
-  line-height: 1.8;
-  margin-bottom: 20px;
-}
-.media-container {
-  margin-top: 30px;
-}
-.media-container h4 {
-  margin-bottom: 10px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 5px;
-}
-.video-player {
-  width: 100%;
-  max-width: 800px;
-  border-radius: 8px;
-}
-.pdf-viewer {
-  width: 100%;
-  height: 800px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
 }
 .course-content {
   padding: 20px;

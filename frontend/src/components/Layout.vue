@@ -219,7 +219,6 @@ const handleCommand = (command: string | number | object) => {
 .layout-main {
   background-color: #f0f2f5;
   padding: 20px;
-  overflow: auto;
   display: flex;
   flex-direction: column;
 }

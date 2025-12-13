@@ -10,15 +10,25 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from users.models import User
 from .models import Course, CourseMaterial, Announcement, Chapter
-from .serializers import CourseSerializer, CourseListSerializer, CourseMaterialSerializer, AnnouncementSerializer, ChapterSerializer
+from .serializers import (
+    CourseSerializer, CourseListSerializer, CourseMaterialSerializer, 
+    AnnouncementSerializer, ChapterSerializer, ChapterWriteSerializer
+)
 from .permissions import IsTeacherOrReadOnly
 
 class ChapterViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows chapters to be viewed or edited.
     """
-    serializer_class = ChapterSerializer
     permission_classes = [permissions.IsAuthenticated, IsTeacherOrReadOnly]
+
+    def get_serializer_class(self):
+        """
+        根据操作（读取或写入）使用不同的序列化器。
+        """
+        if self.action in ['create', 'update', 'partial_update']:
+            return ChapterWriteSerializer
+        return ChapterSerializer
 
     def get_queryset(self):
         """
