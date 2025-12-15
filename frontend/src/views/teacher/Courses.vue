@@ -33,7 +33,7 @@
           <div class="card-footer">
             <el-button type="primary" link @click="navigateToCourse(course.id)">进入课程</el-button>
             <el-button type="primary" link @click="openEditDialog(course)">编辑课程</el-button>
-            <el-button type="danger" link @click="deleteCourse(course.id)">删除</el-button>
+            <el-button type="danger" link @click="deleteCourse(course.id)">删除课程</el-button>
             <el-button type="primary" link @click="openStudentManager(course)">管理学生</el-button>
           </div>
         </el-card>
