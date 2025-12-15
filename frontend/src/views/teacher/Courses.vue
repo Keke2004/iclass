@@ -2,19 +2,27 @@
   <div class="course-list-container">
     <div class="header">
       <h1>我的课程</h1>
-      <el-button type="primary" @click="goToCreateCourse">创建新课程</el-button>
+      <div class="header-actions">
+        <el-input
+          v-model="searchQuery"
+          placeholder="搜索课程"
+          clearable
+          style="width: 240px; margin-right: 10px;"
+        ></el-input>
+        <el-button type="primary" @click="goToCreateCourse">创建新课程</el-button>
+      </div>
     </div>
 
     <div v-if="loading" class="loading-state">
       <p>正在加载课程...</p>
     </div>
 
-    <div v-else-if="courses.length === 0" class="empty-state">
-      <p>您还没有创建任何课程。</p>
+    <div v-else-if="filteredCourses.length === 0" class="empty-state">
+      <p>没有找到匹配的课程。</p>
     </div>
 
     <el-row :gutter="20" v-else>
-      <el-col :span="8" v-for="course in courses" :key="course.id">
+      <el-col :span="8" v-for="course in filteredCourses" :key="course.id">
         <el-card class="course-card">
           <template #header>
             <div class="card-header">
@@ -24,11 +32,31 @@
           <p class="course-description">{{ course.description }}</p>
           <div class="card-footer">
             <el-button type="primary" link @click="navigateToCourse(course.id)">进入课程</el-button>
+            <el-button type="primary" link @click="openEditDialog(course)">编辑课程</el-button>
+            <el-button type="danger" link @click="deleteCourse(course.id)">删除</el-button>
             <el-button type="primary" link @click="openStudentManager(course)">管理学生</el-button>
           </div>
         </el-card>
       </el-col>
     </el-row>
+
+    <!-- 编辑课程对话框 -->
+    <el-dialog v-model="editDialogVisible" title="编辑课程" width="50%">
+      <el-form :model="editForm" :rules="editRules" ref="editFormRef" label-width="100px">
+        <el-form-item label="课程名称" prop="name">
+          <el-input v-model="editForm.name"></el-input>
+        </el-form-item>
+        <el-form-item label="课程描述" prop="description">
+          <el-input v-model="editForm.description" type="textarea" :rows="4"></el-input>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="editDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitEditForm">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
 
     <!-- 学生管理对话框 -->
     <el-dialog v-model="studentManagerVisible" title="管理学生" width="50%">
@@ -69,10 +97,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import apiClient from '../../services/api';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus';
 
 const router = useRouter();
 
@@ -92,8 +120,33 @@ const courses = ref<Course[]>([]);
 const allStudents = ref<Student[]>([]);
 const loading = ref(true);
 const studentManagerVisible = ref(false);
+const editDialogVisible = ref(false);
 const currentCourse = ref<Course | null>(null);
 const selectedStudent = ref<number | null>(null);
+const searchQuery = ref('');
+
+const editFormRef = ref<FormInstance>();
+const editForm = reactive({
+  id: null as number | null,
+  name: '',
+  description: '',
+});
+
+const editRules = reactive<FormRules>({
+  name: [{ required: true, message: '请输入课程名称', trigger: 'blur' }],
+  description: [{ required: true, message: '请输入课程描述', trigger: 'blur' }],
+});
+
+const filteredCourses = computed(() => {
+  if (!searchQuery.value) {
+    return courses.value;
+  }
+  const query = searchQuery.value.toLowerCase();
+  return courses.value.filter(course =>
+    course.name.toLowerCase().includes(query) ||
+    course.description.toLowerCase().includes(query)
+  );
+});
 
 const enrolledStudentDetails = computed(() => {
   if (!currentCourse.value) return [];
@@ -134,6 +187,33 @@ const goToCreateCourse = () => {
 
 const navigateToCourse = (courseId: number) => {
   router.push({ name: 'course-detail', params: { id: courseId } });
+};
+
+const openEditDialog = (course: Course) => {
+  editForm.id = course.id;
+  editForm.name = course.name;
+  editForm.description = course.description;
+  editDialogVisible.value = true;
+};
+
+const submitEditForm = async () => {
+  if (!editFormRef.value) return;
+  await editFormRef.value.validate(async (valid) => {
+    if (valid) {
+      try {
+        await apiClient.put(`/courses/${editForm.id}/`, {
+          name: editForm.name,
+          description: editForm.description,
+        });
+        ElMessage.success('课程更新成功！');
+        editDialogVisible.value = false;
+        await fetchCourses(); // 重新获取课程列表
+      } catch (error) {
+        console.error('更新课程失败:', error);
+        ElMessage.error('课程更新失败，请稍后重试。');
+      }
+    }
+  });
 };
 
 const openStudentManager = (course: Course) => {
@@ -183,6 +263,29 @@ const removeStudent = async (studentId: number) => {
   }
 };
 
+const deleteCourse = async (courseId: number) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这门课程吗？此操作不可撤销。',
+      '警告',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+    
+    await apiClient.delete(`/courses/${courseId}/`);
+    ElMessage.success('课程删除成功！');
+    await fetchCourses(); // 重新获取课程列表
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除课程失败:', error);
+      ElMessage.error('课程删除失败，请稍后重试。');
+    }
+  }
+};
+
 onMounted(async () => {
   loading.value = true;
   try {
@@ -205,6 +308,10 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
 }
 .course-card {
   margin-bottom: 20px;

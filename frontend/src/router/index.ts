@@ -51,7 +51,8 @@ const router = createRouter({
         {
           path: 'teacher/courses/create',
           name: 'teacher-create-course',
-          component: () => import('../views/teacher/CreateCourse.vue')
+          component: () => import('../views/teacher/CreateCourse.vue'),
+          meta: { requiresAuth: true, roles: ['teacher'] }
         },
         {
           path: 'courses/:id',
@@ -68,12 +69,6 @@ const router = createRouter({
               path: 'discussions',
               name: 'course-discussions',
               component: () => import('@/views/common/DiscussionManager.vue')
-            },
-            {
-              path: 'discussions/:topicId',
-              name: 'course-discussion-detail',
-              component: () => import('@/views/common/DiscussionTopicDetail.vue'),
-              props: true
             },
             {
               path: 'chapters',

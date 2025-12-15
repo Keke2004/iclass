@@ -2,18 +2,24 @@
   <div class="course-list-container">
     <div class="header">
       <h1>我的课程</h1>
+      <el-input
+        v-model="searchQuery"
+        placeholder="搜索课程"
+        clearable
+        style="width: 240px;"
+      ></el-input>
     </div>
 
     <div v-if="loading" class="loading-state">
       <p>正在加载课程...</p>
     </div>
 
-    <div v-else-if="courses.length === 0" class="empty-state">
-      <p>您还没有加入任何课程。</p>
+    <div v-else-if="filteredCourses.length === 0" class="empty-state">
+      <p>没有找到匹配的课程。</p>
     </div>
 
     <el-row :gutter="20" v-else>
-      <el-col :span="8" v-for="course in courses" :key="course.id">
+      <el-col :span="8" v-for="course in filteredCourses" :key="course.id">
         <el-card class="course-card">
           <template #header>
             <div class="card-header">
@@ -31,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import apiClient from '../../services/api';
 import { ElMessage } from 'element-plus';
@@ -46,6 +52,18 @@ interface Course {
 const courses = ref<Course[]>([]);
 const loading = ref(true);
 const router = useRouter();
+const searchQuery = ref('');
+
+const filteredCourses = computed(() => {
+  if (!searchQuery.value) {
+    return courses.value;
+  }
+  const query = searchQuery.value.toLowerCase();
+  return courses.value.filter(course =>
+    course.name.toLowerCase().includes(query) ||
+    course.description.toLowerCase().includes(query)
+  );
+});
 
 const navigateToCourse = (courseId: number) => {
   router.push({ name: 'course-detail', params: { id: courseId } });

@@ -1,37 +1,54 @@
 <template>
   <div class="chapter-manager-container">
     <div class="header">
-      <h3>课程目录</h3>
-      <el-button v-if="isTeacher" type="primary" @click="openAddChapterDialog(null)">添加章</el-button>
+      <div class="header-left">
+        <h3>课程目录</h3>
+      </div>
+      <div class="header-right">
+        <el-input
+          v-model="searchQuery"
+          placeholder="搜索章节内容"
+          clearable
+          class="search-input"
+        />
+        <el-button v-if="isTeacher" type="primary" @click="openAddChapterDialog(null)">添加章</el-button>
+      </div>
     </div>
 
-    <el-tree
-      v-if="chapters.length > 0"
-      :data="chapters"
-      :props="treeProps"
-      node-key="id"
-      default-expand-all
-      :expand-on-click-node="false"
-      class="chapter-tree"
-    >
-      <template #default="{ node, data }">
-        <span class="custom-tree-node" @click="handleNodeClick(node, data)">
-          <span>{{ node.label }}</span>
-          <span v-if="isTeacher" class="node-actions">
-            <el-button v-if="!data.parent" type="primary" link size="small" @click.stop="openAddChapterDialog(data)">添加节</el-button>
-            <el-button type="primary" link size="small" @click.stop="openEditChapterDialog(data)">编辑标题</el-button>
-            <el-popconfirm
-              title="确定要删除吗？如果删除章，其下的所有节也会被删除。"
-              @confirm.stop="deleteChapter(data.id)"
-            >
-              <template #reference>
-                <el-button type="danger" link size="small" @click.stop>删除</el-button>
-              </template>
-            </el-popconfirm>
-          </span>
-        </span>
-      </template>
-    </el-tree>
+    <el-collapse v-if="filteredChapters.length > 0" ref="collapseRef" class="chapter-collapse">
+      <el-collapse-item v-for="(chapter, index) in filteredChapters" :key="chapter.id" :name="chapter.id.toString()">
+        <template #title>
+          <div class="chapter-header-content">
+            <span class="chapter-title" v-html="highlightText(`第 ${chapter.originalIndex + 1} 章 ${chapter.title}`, searchQuery)"></span>
+            <span v-if="isTeacher" class="node-actions">
+              <el-button type="primary" link size="small" @click.stop="openAddChapterDialog(chapter)">添加节</el-button>
+              <el-button type="primary" link size="small" @click.stop="openEditChapterDialog(chapter)">编辑</el-button>
+              <el-popconfirm title="确定要删除吗？如果删除章，其下的所有节也会被删除。" @confirm.stop="deleteChapter(chapter.id)">
+                <template #reference>
+                  <el-button type="danger" link size="small" @click.stop>删除</el-button>
+                </template>
+              </el-popconfirm>
+            </span>
+          </div>
+        </template>
+        <ul class="section-list">
+          <li v-for="(section, secIndex) in chapter.children" :key="section.id" class="section-item" @click="handleSectionClick(section)">
+            <div class="section-content">
+              <el-icon class="completion-icon"><CircleCheckFilled /></el-icon>
+              <span class="section-title" v-html="highlightText(`${chapter.originalIndex + 1}.${secIndex + 1} ${section.title}`, searchQuery)"></span>
+            </div>
+            <div v-if="isTeacher" class="node-actions">
+              <el-button type="primary" link size="small" @click.stop="openEditChapterDialog(section)">编辑</el-button>
+              <el-popconfirm title="确定要删除吗？" @confirm.stop="deleteChapter(section.id)">
+                <template #reference>
+                  <el-button type="danger" link size="small" @click.stop>删除</el-button>
+                </template>
+              </el-popconfirm>
+            </div>
+          </li>
+        </ul>
+      </el-collapse-item>
+    </el-collapse>
     <el-empty v-else description="暂无章节内容"></el-empty>
 
     <!-- 添加/编辑标题对话框 -->
@@ -52,10 +69,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch, nextTick } from 'vue';
+import type { CollapseInstance } from 'element-plus';
 import { useRoute, useRouter } from 'vue-router';
 import apiClient from '../../services/api';
-import { ElMessage, ElButton, ElDialog, ElForm, ElFormItem, ElInput, ElEmpty, ElPopconfirm, ElTree } from 'element-plus';
+import { ElMessage, ElButton, ElDialog, ElForm, ElFormItem, ElInput, ElEmpty, ElPopconfirm, ElCollapse, ElCollapseItem, ElIcon } from 'element-plus';
+import { CircleCheckFilled } from '@element-plus/icons-vue';
 
 interface Chapter {
   id: number;
@@ -69,6 +88,8 @@ const router = useRouter();
 const courseId = computed(() => route.params.id as string);
 
 const chapters = ref<Chapter[]>([]);
+const searchQuery = ref('');
+const collapseRef = ref<CollapseInstance>();
 const dialogVisible = ref(false);
 const isEditing = ref(false);
 const chapterForm = ref<{
@@ -91,26 +112,73 @@ const dialogTitle = computed(() => {
 const userRole = localStorage.getItem('user_role');
 const isTeacher = computed(() => userRole === 'teacher');
 
-const treeProps = {
-  children: 'children',
-  label: 'title',
+const highlightText = (text: string, query: string) => {
+  if (!query) {
+    return text;
+  }
+  const regex = new RegExp(`(${query})`, 'gi');
+  return text.replace(regex, '<span class="highlight">$1</span>');
 };
+
+const filteredChapters = computed(() => {
+  const query = searchQuery.value.toLowerCase();
+  if (!query) {
+    return chapters.value.map((chapter, index) => ({ ...chapter, originalIndex: index }));
+  }
+
+  const result: any[] = [];
+  chapters.value.forEach((chapter, index) => {
+    const chapterTitleMatch = chapter.title.toLowerCase().includes(query);
+    
+    const matchingSections = chapter.children?.filter(section => 
+      section.title.toLowerCase().includes(query)
+    ) || [];
+
+    if (chapterTitleMatch || matchingSections.length > 0) {
+      result.push({
+        ...chapter,
+        originalIndex: index,
+        // If chapter title matches, show all children; otherwise, show only matching children.
+        children: chapterTitleMatch ? chapter.children : matchingSections,
+      });
+    }
+  });
+  return result;
+});
+
+watch(searchQuery, () => {
+  nextTick(() => {
+    if (collapseRef.value) {
+      let idsToExpand: string[];
+      if (searchQuery.value) {
+        idsToExpand = filteredChapters.value.map(c => c.id.toString());
+      } else {
+        idsToExpand = chapters.value.map(c => c.id.toString());
+      }
+      // 直接操作组件实例的内部状态
+      collapseRef.value.setActiveNames(idsToExpand);
+    }
+  });
+});
 
 const fetchChapters = async () => {
   try {
     const response = await apiClient.get(`/courses/${courseId.value}/chapters/`);
     chapters.value = response.data;
+    // 默认展开所有章
+    nextTick(() => {
+      if (collapseRef.value && chapters.value.length > 0) {
+        collapseRef.value.setActiveNames(chapters.value.map(c => c.id.toString()));
+      }
+    });
   } catch (error) {
     console.error('获取章节列表失败:', error);
     ElMessage.error('无法加载章节列表。');
   }
 };
 
-const handleNodeClick = (node: any, data: Chapter) => {
-  // 如果是节 (有 parent)，则导航到详情页
-  if (data.parent) {
-    router.push({ name: 'section-detail', params: { id: courseId.value, sectionId: data.id } });
-  }
+const handleSectionClick = (section: Chapter) => {
+  router.push({ name: 'section-detail', params: { id: courseId.value, sectionId: section.id } });
 };
 
 const openAddChapterDialog = (parentChapter: Chapter | null) => {
@@ -181,42 +249,133 @@ onMounted(() => {
 
 <style scoped>
 .chapter-manager-container {
-  padding: 16px;
-  background-color: #fff;
+  padding: 24px;
+  background-color: #f7f8fa; /* 参考背景色 */
   height: 100%;
-  display: flex;
-  flex-direction: column;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding: 0 8px;
+  margin-bottom: 20px;
 }
 
-.chapter-tree {
-  flex-grow: 1;
-  overflow-y: auto;
+.header-left h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
 }
 
-.custom-tree-node {
-  flex: 1;
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.search-input {
+  width: 240px;
+}
+
+.chapter-collapse {
+  border: none;
+}
+
+:deep(.el-collapse-item__header) {
+  background-color: #fff;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  padding: 0 20px;
+  height: 60px;
+  font-size: 16px;
+  font-weight: 500;
+  border: 1px solid #e8e8e8;
+  transition: all 0.3s;
+}
+
+:deep(.el-collapse-item__header:hover) {
+  border-color: #409eff;
+}
+
+:deep(.el-collapse-item__wrap) {
+  background-color: transparent;
+  border: none;
+  padding-left: 20px;
+}
+
+:deep(.el-collapse-item__content) {
+  padding-bottom: 0;
+}
+
+.chapter-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.chapter-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.section-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.section-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 14px;
-  padding-right: 8px;
+  padding: 12px 20px;
+  margin-bottom: 8px;
+  background-color: #fff;
+  border-radius: 6px;
   cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.section-item:hover {
+  background-color: #f0f5ff;
+}
+
+.section-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.completion-icon {
+  color: #67c23a; /* 绿色对勾 */
+  font-size: 18px;
+}
+
+.section-title {
+  font-size: 14px;
+  color: #333;
 }
 
 .node-actions {
   display: none;
-  cursor: default;
+  gap: 16px; /* 增加按钮间距 */
+  flex-shrink: 0; /* 防止操作按钮被压缩 */
 }
 
-.el-tree-node__content:hover .node-actions {
-  display: inline-block;
+:deep(.el-collapse-item__header):hover .node-actions,
+.section-item:hover .node-actions {
+  display: flex;
+  align-items: center;
+}
+
+.node-actions .el-button {
+  font-size: 14px; /* 统一字体大小 */
+}
+
+:deep(.highlight) {
+  color: #409eff;
+  font-weight: bold;
 }
 </style>
