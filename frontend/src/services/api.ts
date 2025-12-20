@@ -26,9 +26,9 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    // 检查是否是401错误且不是因为刷新token本身失败
-    if (error.response.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true; // 标记为已重试
+    // 检查是否是401错误、不是重试请求，并且请求的URL不是登录URL
+    if (error.response.status === 401 && !originalRequest._retry && originalRequest.url !== '/token/') {
+      originalRequest._retry = true;
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
         try {

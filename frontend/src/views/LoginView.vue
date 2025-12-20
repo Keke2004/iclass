@@ -73,46 +73,52 @@ const handleLogin = async () => {
   await loginFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        // 1. 获取token
         const { access, refresh } = await login(loginForm);
         localStorage.setItem('access_token', access);
         localStorage.setItem('refresh_token', refresh);
+        
+        // 后端已经验证了角色，这里直接从登录表单中获取角色
+        const role = loginForm.role;
+        localStorage.setItem('user_role', role);
+        localStorage.setItem('username', loginForm.username); // 保存用户名
 
-        // 2. 设置api客户端的header，以便后续请求能通过认证
         apiClient.defaults.headers.common['Authorization'] = `Bearer ${access}`;
 
-        // 3. 获取用户真实角色信息
-        const userProfile = await getUserProfile();
-        const realRole = userProfile.role;
+        ElMessage.success('登录成功');
 
-        // 4. 比较选择的角色和真实角色
-        if (loginForm.role === realRole) {
-          localStorage.setItem('user_role', realRole);
-          localStorage.setItem('username', userProfile.username || '用户'); // 保存用户名
-          ElMessage.success('登录成功');
-          // 根据角色跳转
-          switch (realRole) {
-            case 'student':
-              router.push('/student/courses');
-              break;
-            case 'teacher':
-              router.push('/teacher/courses');
-              break;
-            case 'admin':
-              router.push('/admin/users');
-              break;
-            default:
-              router.push('/');
-              break;
-          }
-        } else {
-          // 角色不匹配，清除token并提示错误
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          ElMessage.error(`角色选择错误，该用户不是'${loginForm.role}'`);
+        switch (role) {
+          case 'student':
+            router.push('/student/courses');
+            break;
+          case 'teacher':
+            router.push('/teacher/courses');
+            break;
+          case 'admin':
+            router.push('/admin/users');
+            break;
+          default:
+            router.push('/');
+            break;
         }
-      } catch (error) {
-        ElMessage.error('用户名或密码错误');
+      } catch (error: any) {
+        if (error.response && error.response.data) {
+          // 检查详细错误信息
+          // Django REST Framework 的 ValidationError 可能是字符串数组
+          let errorMessage = '登录失败';
+          if (typeof error.response.data === 'object' && error.response.data !== null) {
+            if (error.response.data.detail) {
+              errorMessage = error.response.data.detail;
+            } else if (Array.isArray(error.response.data) && error.response.data.length > 0) {
+              errorMessage = error.response.data[0];
+            } else if (error.response.data.non_field_errors) {
+              errorMessage = error.response.data.non_field_errors[0];
+            }
+          }
+          ElMessage.error(errorMessage);
+        } else {
+          // 通用网络错误或其它问题
+          ElMessage.error('登录请求失败，请检查网络连接');
+        }
         console.error('Login failed:', error);
       }
     } else {

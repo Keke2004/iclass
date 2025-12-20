@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.exceptions import AuthenticationFailed
 from .models import User
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -12,7 +13,11 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
-        data = super().validate(attrs)
+        try:
+            data = super().validate(attrs)
+        except AuthenticationFailed:
+            raise serializers.ValidationError('用户名或密码错误')
+
         # 前端发送的role
         request_role = self.context['request'].data.get('role')
         if request_role and self.user.role != request_role:
