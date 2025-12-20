@@ -7,6 +7,23 @@ import Layout from '../components/Layout.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+      {
+        path: '/assignments/:id',
+        name: 'AssignmentDetail',
+        component: () => import('../views/common/AssignmentDetail.vue')
+      },
+      {
+        path: '/assignments/new',
+        name: 'AssignmentCreate',
+        component: () => import('../views/teacher/AssignmentEditor.vue'),
+        meta: { requiresAuth: true, roles: ['teacher'] }
+      },
+      {
+        path: '/assignments/:id/edit',
+        name: 'AssignmentEdit',
+        component: () => import('../views/teacher/AssignmentEditor.vue'),
+        meta: { requiresAuth: true, roles: ['teacher'] }
+      },
     {
       path: '/login',
       name: 'login',
@@ -38,24 +55,31 @@ const router = createRouter({
         },
         // Student Routes
         {
-          path: 'student/courses',
+          path: '/student/courses',
           name: 'student-courses',
           component: () => import('../views/student/Courses.vue')
         },
         // Teacher Routes
         {
-          path: 'teacher/courses',
+          path: '/teacher/courses',
           name: 'teacher-courses',
           component: () => import('../views/teacher/Courses.vue')
         },
         {
-          path: 'teacher/courses/create',
+          path: '/teacher/courses/create',
           name: 'teacher-create-course',
           component: () => import('../views/teacher/CreateCourse.vue'),
           meta: { requiresAuth: true, roles: ['teacher'] }
         },
         {
-          path: 'courses/:id',
+          path: '/assignments/:id',
+          name: 'assignment-detail',
+          component: () => import('../views/common/AssignmentDetail.vue'),
+          meta: { requiresAuth: true, roles: ['student', 'teacher'] },
+          props: true
+        },
+        {
+          path: '/courses/:id',
           name: 'course-detail',
           component: () => import('../views/common/CourseDetail.vue'),
           redirect: to => ({ name: 'course-tasks', params: { id: to.params.id } }),
@@ -95,23 +119,28 @@ const router = createRouter({
               name: 'section-detail',
               component: () => import('../views/common/SectionDetail.vue'),
               props: true
+            },
+            {
+              path: 'assignments',
+              name: 'course-assignments',
+              component: () => import('@/views/common/AssignmentManager.vue')
             }
             // 其他子路由可以根据需要在这里添加
           ]
         },
         // Admin Routes
         {
-          path: 'admin/users',
+          path: '/admin/users',
           name: 'admin-users',
           component: () => import('../views/admin/Users.vue')
         },
         {
-          path: 'admin/statistics',
+          path: '/admin/statistics',
           name: 'admin-statistics',
           component: () => import('../views/admin/Statistics.vue')
         },
         {
-          path: 'admin/logs',
+          path: '/admin/logs',
           name: 'admin-logs',
           component: () => import('../views/admin/LogView.vue')
         }

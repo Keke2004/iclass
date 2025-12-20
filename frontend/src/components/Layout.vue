@@ -87,6 +87,7 @@ import {
   User,
   DataLine,
   Tickets,
+  Document,
 } from '@element-plus/icons-vue';
 
 const router = useRouter();

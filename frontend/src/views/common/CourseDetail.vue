@@ -98,6 +98,8 @@ const routeNameToMenuIndex: { [key: string]: string } = {
   'course-members': 'members',
   'course-announcements': 'announcements',
   'course-materials': 'materials',
+  'course-assignments': 'assignments',
+  'course-exams': 'exams',
 };
 
 const handleMenuSelect = (index: string) => {
@@ -108,6 +110,8 @@ const handleMenuSelect = (index: string) => {
     members: 'course-members',
     announcements: 'course-announcements',
     materials: 'course-materials',
+    assignments: 'course-assignments',
+    exams: 'course-exams',
   };
   const routeName = menuIndexToRouteName[index];
   if (routeName) {
