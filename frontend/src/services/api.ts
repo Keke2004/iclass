@@ -69,4 +69,27 @@ export const updateProfile = (data: any) => {
   return apiClient.put('/users/profile/', data);
 };
 
+// 作业相关 API
+export const getAssignment = (id: number) => apiClient.get(`/assignments/${id}/`);
+export const createAssignment = (data: any) => apiClient.post('/assignments/', data);
+export const updateAssignment = (id: number, data: any) => apiClient.put(`/assignments/${id}/`, data);
+export const deleteAssignment = (id: number) => apiClient.delete(`/assignments/${id}/`);
+export const getSubmissions = (assignmentId: number) => apiClient.get(`/submissions/?assignment=${assignmentId}`);
+export const createSubmission = (data: any) => apiClient.post('/submissions/', data);
+export const getSubmission = (id: number) => apiClient.get(`/submissions/${id}/`);
+export const gradeSubmission = (id: number, data: any) => apiClient.post(`/submissions/${id}/grade/`, data);
+
+// 考试相关 API
+export const getExams = (courseId: number) => apiClient.get(`/exams/?course=${courseId}`);
+export const getExam = (id: number) => apiClient.get(`/exams/${id}/`);
+export const createExam = (data: any) => apiClient.post('/exams/', data);
+export const updateExam = (id: number, data: any) => apiClient.put(`/exams/${id}/`, data);
+export const deleteExam = (id: number) => apiClient.delete(`/exams/${id}/`);
+export const startExam = (id: number) => apiClient.post(`/exams/${id}/start/`);
+export const getExamSubmission = (id: number) => apiClient.get(`/exam-submissions/${id}/`);
+export const getSubmissionsForExam = (examId: number) => apiClient.get(`/exams/${examId}/submissions/`);
+export const submitExam = (id: number, data: any) => apiClient.post(`/exam-submissions/${id}/submit/`, data);
+export const gradeExamSubmission = (id: number, data: any) => apiClient.post(`/exam-submissions/${id}/grade/`, data);
+
+
 export default apiClient;

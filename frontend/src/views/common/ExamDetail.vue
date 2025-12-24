@@ -1,20 +1,26 @@
 <template>
-  <div class="assignment-detail-container" v-if="!loading">
+  <div class="exam-detail-container" v-if="!loading">
     <!-- Header -->
     <el-card class="page-header-card">
       <div class="header-content">
         <div class="header-left">
-          <span class="assignment-title">{{ assignment.title }}</span>
+          <span class="exam-title">{{ exam.title }}</span>
           <div class="header-meta">
-            <span>题目: {{ assignment.questions?.length || 0 }}</span>
+            <span>题目: {{ exam.questions?.length || 0 }}</span>
             <span>总分: {{ totalPoints }}</span>
             <span v-if="isStudent && isGraded">作答时间: {{ formatDate(submission.submitted_at) }}</span>
-            <span v-else>截止时间: {{ formatDate(assignment.due_date) }}</span>
+            <span v-else>截止时间: {{ formatDate(exam.end_time) }}</span>
           </div>
         </div>
-        <div class="header-right" v-if="isStudent && isGraded">
-          <span class="score-label">得分</span>
-          <span class="score-value">{{ submission.grade }}</span>
+        <div class="header-right" v-if="isStudent">
+          <div v-if="isGraded" class="score-display">
+            <span class="score-label">得分</span>
+            <span class="score-value">{{ submission.grade }}</span>
+          </div>
+          <div v-if="!isReadOnly && submission?.status !== 'submitted' && submission?.status !== 'graded'" class="timer-display">
+            <span class="timer-label">剩余时间</span>
+            <span class="timer-value">{{ formattedTime }}</span>
+          </div>
         </div>
       </div>
     </el-card>
@@ -26,7 +32,7 @@
           <!-- Student View -->
           <div v-if="isStudent">
             <div class="question-list">
-              <div v-for="(question, index) in assignment.questions" :key="question.id" class="question-item" :id="`question-${question.id}`">
+              <div v-for="(question, index) in exam.questions" :key="question.id" class="question-item" :id="`question-${question.id}`">
                 <div class="question-header">
                   <h4>{{ index + 1 }}. [{{ getQuestionTypeName(question.question_type) }}] {{ question.text }} ({{ question.points }}分)</h4>
                 </div>
@@ -87,7 +93,7 @@
               </div>
             </div>
             <div class="submission-actions" v-if="!isGraded && !isReadOnly">
-              <el-button type="primary" @click="submitAssignment">提交作业</el-button>
+              <el-button type="primary" @click="submitExam" :loading="isSubmitting" :disabled="isSubmitting">提交考试</el-button>
             </div>
           </div>
 
@@ -98,9 +104,9 @@
               <el-empty description="请从右侧选择一个学生以开始批改"></el-empty>
             </div>
             <div v-else>
-              <h3>正在批改: {{ selectedSubmission.student }} 的作业</h3>
+              <h3>正在批改: {{ selectedSubmission.student }} 的考试</h3>
               <div class="question-list">
-                <div v-for="(question, index) in assignment.questions" :key="question.id" class="question-item">
+                <div v-for="(question, index) in exam.questions" :key="question.id" class="question-item">
                   <h4>{{ index + 1 }}. [{{ getQuestionTypeName(question.question_type) }}] {{ question.text }} ({{ question.points }}分)</h4>
 
                   <!-- Teacher's view of choices -->
@@ -131,7 +137,7 @@
               </div>
               <div class="feedback-area">
                 <h3>总评语</h3>
-                <el-input v-model="gradingFeedback" type="textarea" :rows="4" placeholder="请输入对本次作业的评语"></el-input>
+                <el-input v-model="gradingFeedback" type="textarea" :rows="4" placeholder="请输入对本次考试的评语"></el-input>
               </div>
               <div class="submission-actions">
                 <el-button type="primary" @click="saveGrades">保存批改</el-button>
@@ -148,7 +154,7 @@
           <template #header>题目导航</template>
           <div class="question-nav-grid">
             <el-button
-              v-for="(question, index) in assignment.questions"
+              v-for="(question, index) in exam.questions"
               :key="question.id"
               :type="getQuestionNavType(question)"
               plain
@@ -158,7 +164,7 @@
             </el-button>
           </div>
            <div v-if="isGraded" class="sidebar-summary">
-            <h4>作业总览</h4>
+            <h4>考试总览</h4>
             <p>最终得分: {{ submission.grade }} / {{ totalPoints }}</p>
             <h4>教师评语</h4>
             <p>{{ submission.feedback || '暂无评语' }}</p>
@@ -192,27 +198,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import api from '@/services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { CircleCheckFilled, CircleCloseFilled } from '@element-plus/icons-vue';
 
 const route = useRoute();
+const router = useRouter();
 const loading = ref(true);
-const assignment = ref<any>(null);
+const exam = ref<any>(null);
 const userRole = localStorage.getItem('user_role');
-const assignmentId = route.params.id;
+const examId = route.params.id;
 
 // For Student
 const submission = ref<any>(null);
 const studentAnswers = ref<any>({});
+const isSubmitting = ref(false);
 
 // For Teacher
-const allSubmissions = ref<any[]>([]); // This will be populated from assignment.student_submissions
+const allSubmissions = ref<any[]>([]); // This will be populated from exam.student_submissions
 const selectedSubmission = ref<any>(null);
 const gradingScores = ref<any>({});
 const gradingFeedback = ref('');
+
+// For Timer
+const remainingTime = ref(0);
+const timer = ref<any>(null);
 
 onMounted(async () => {
   await fetchData();
@@ -221,18 +233,18 @@ onMounted(async () => {
 async function fetchData() {
   try {
     loading.value = true;
-    const assignmentRes = await api.get(`/assignments/${assignmentId}/`);
-    assignment.value = assignmentRes.data;
+    const examRes = await api.get(`/exams/${examId}/`);
+    exam.value = examRes.data;
 
     if (userRole === 'student') {
-      const submissionRes = await api.get(`/submissions/?assignment=${assignmentId}`);
+      const submissionRes = await api.get(`/exam-submissions/?exam=${examId}`);
       if (submissionRes.data && submissionRes.data.length > 0) {
         submission.value = submissionRes.data[0];
         const answersFromServer = submission.value.answers;
-        const questionMap = new Map(assignment.value.questions.map((q: any) => [q.id, q]));
+        const questionMap = new Map(exam.value.questions.map((q: any) => [q.id, q]));
 
         // Initialize all answers first
-        assignment.value.questions.forEach((q: any) => {
+        exam.value.questions.forEach((q: any) => {
           if (q.question_type === 'multiple_choice') {
             studentAnswers.value[q.id] = [];
           } else {
@@ -255,9 +267,16 @@ async function fetchData() {
             studentAnswers.value[ans.question] = ans.text;
           }
         });
+
+        // If the submission is in 'taking' status, start the timer.
+        if (submission.value.status === 'taking') {
+          startTimer();
+        }
       } else {
-        // Init empty answers for submission
-        assignment.value.questions.forEach((q: any) => {
+        // This case should ideally not happen if student is on this page,
+        // as a submission is created upon starting the exam.
+        // But as a fallback, we can init empty answers.
+        exam.value.questions.forEach((q: any) => {
           if (q.question_type === 'multiple_choice') {
             studentAnswers.value[q.id] = [];
           } else {
@@ -266,16 +285,56 @@ async function fetchData() {
         });
       }
     } else if (userRole === 'teacher') {
-      // The full list of students and their submission status is now part of the assignment object
-      allSubmissions.value = assignment.value.student_submissions || [];
+      // The full list of students and their submission status is now part of the exam object
+      allSubmissions.value = exam.value.student_submissions || [];
     }
   } catch (error) {
-    console.error('Failed to fetch assignment data:', error);
-    ElMessage.error('加载作业数据失败');
+    console.error('Failed to fetch exam data:', error);
+    ElMessage.error('加载考试数据失败');
   } finally {
     loading.value = false;
   }
 }
+
+function startTimer() {
+  if (!submission.value || !exam.value) return;
+
+  const startTime = new Date(submission.value.start_time).getTime();
+  const timeLimitInSeconds = exam.value.time_limit * 60;
+  const deadline = startTime + timeLimitInSeconds * 1000;
+  const now = new Date().getTime();
+  
+  // Also consider the exam's own end time, whichever is earlier
+  const examEndTime = new Date(exam.value.end_time).getTime();
+  const finalDeadline = Math.min(deadline, examEndTime);
+
+  remainingTime.value = Math.max(0, Math.floor((finalDeadline - now) / 1000));
+
+  if (remainingTime.value > 0 && !timer.value) {
+    timer.value = setInterval(() => {
+      remainingTime.value--;
+      if (remainingTime.value <= 0) {
+        clearInterval(timer.value);
+        timer.value = null;
+        ElMessage.warning('时间到，系统将自动提交考试。');
+        submitExam(true); // Auto-submit
+      }
+    }, 1000);
+  }
+}
+
+onUnmounted(() => {
+  if (timer.value) {
+    clearInterval(timer.value);
+  }
+});
+
+const formattedTime = computed(() => {
+  if (remainingTime.value <= 0) return '00:00';
+  const minutes = Math.floor(remainingTime.value / 60);
+  const seconds = remainingTime.value % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+});
 
 const handleRadioClick = (questionId: number, choiceId: string) => {
   if (isReadOnly.value) return;
@@ -289,8 +348,8 @@ const handleRadioClick = (questionId: number, choiceId: string) => {
 };
 
 const totalPoints = computed(() => {
-  if (!assignment.value || !assignment.value.questions) return 0;
-  return assignment.value.questions.reduce((sum: number, q: any) => sum + q.points, 0);
+  if (!exam.value || !exam.value.questions) return 0;
+  return exam.value.questions.reduce((sum: number, q: any) => sum + q.points, 0);
 });
 
 const getQuestionTypeName = (type: string) => {
@@ -324,10 +383,10 @@ const isSubmitted = computed(() => isStudent.value && submission.value?.status =
 const isReadOnly = computed(() => {
   // 教师视图总是只读（不直接作答）
   if (!isStudent.value) return true;
-  // 如果作业已提交（无论是否批改），则为只读
-  if (submission.value) return true;
+  // 如果考试已提交（无论是否批改），则为只读
+  if (submission.value && submission.value.status !== 'taking') return true;
   // 如果已过截止日期，则为只读
-  if (assignment.value && new Date(assignment.value.due_date) < new Date()) return true;
+  if (exam.value && new Date(exam.value.end_time) < new Date()) return true;
   // 其他情况均可编辑
   return false;
 });
@@ -462,7 +521,7 @@ async function handleStudentSelect(submissionId: string) {
   
   // Fetch the full submission details for the selected student
   try {
-    const res = await api.get(`/submissions/${submissionId}/`);
+    const res = await api.get(`/exam-submissions/${submissionId}/`);
     selectedSubmission.value = res.data;
     
     if (selectedSubmission.value) {
@@ -488,7 +547,7 @@ async function saveGrades() {
   }));
   const payload = { answers: answersPayload, feedback: gradingFeedback.value };
   try {
-    await api.post(`/submissions/${selectedSubmission.value.id}/grade/`, payload);
+    await api.post(`/exam-submissions/${selectedSubmission.value.id}/grade/`, payload);
     ElMessage.success('批改已保存！');
     await fetchData();
   } catch (error) {
@@ -497,19 +556,28 @@ async function saveGrades() {
   }
 }
 
-const submitAssignment = async () => {
-  try {
-    await ElMessageBox.confirm('确认提交作业吗？提交后将无法修改。', '提示', {
-      confirmButtonText: '确认',
-      cancelButtonText: '取消',
-      type: 'warning',
-    });
-  } catch (e) {
-    return;
+const submitExam = async (isAutoSubmit = false) => {
+  if (!isAutoSubmit) {
+    try {
+      await ElMessageBox.confirm('确认提交考试吗？提交后将无法修改。', '提示', {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning',
+      });
+    } catch (e) {
+      return; // User cancelled
+    }
   }
 
+  if (isSubmitting.value) return;
+  isSubmitting.value = true;
+
   try {
-    const questionMap = new Map(assignment.value.questions.map((q: any) => [q.id.toString(), q]));
+    if (timer.value) {
+      clearInterval(timer.value);
+      timer.value = null;
+    }
+    const questionMap = new Map(exam.value.questions.map((q: any) => [q.id.toString(), q]));
     const answersPayload = Object.keys(studentAnswers.value)
       .map(questionId => {
         const answer = studentAnswers.value[questionId];
@@ -530,24 +598,27 @@ const submitAssignment = async () => {
       })
       .filter(p => p); // filter out nulls
 
-    if (answersPayload.length === 0) {
+    // Allow submitting empty answers on auto-submit, but warn on manual submit
+    if (answersPayload.length === 0 && !isAutoSubmit) {
       ElMessage.warning('您还没有回答任何问题。');
-      return;
+    } else {
+      const submissionPayload = { answers: answersPayload };
+      await api.post(`/exam-submissions/${submission.value.id}/submit/`, submissionPayload);
+      ElMessage.success('考试提交成功！');
+      // Redirect to the exam list page of the course
+      router.push({ name: 'course-exams', params: { id: exam.value.course } });
     }
-
-    const submissionPayload = { assignment: assignmentId, answers: answersPayload };
-    await api.post('/submissions/', submissionPayload);
-    ElMessage.success('作业提交成功！');
-    await fetchData();
   } catch (error) {
-    console.error('Failed to submit assignment:', error);
+    console.error('Failed to submit exam:', error);
     ElMessage.error('提交失败，请检查网络或联系教师。');
+  } finally {
+    isSubmitting.value = false;
   }
 };
 </script>
 
 <style scoped>
-.assignment-detail-container {
+.exam-detail-container {
   padding: 20px;
   background-color: #f4f5f7;
 }
@@ -562,7 +633,7 @@ const submitAssignment = async () => {
   align-items: center;
 }
 
-.assignment-title {
+.exam-title {
   font-size: 24px;
   font-weight: bold;
 }
@@ -590,6 +661,31 @@ const submitAssignment = async () => {
   font-size: 36px;
   font-weight: bold;
   color: #e6a23c;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.score-display, .timer-display {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.timer-label {
+  font-size: 14px;
+  color: #909399;
+  margin-bottom: 4px;
+}
+
+.timer-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #f56c6c;
+  font-family: monospace;
 }
 
 .main-content {

@@ -19,10 +19,34 @@ const router = createRouter({
         meta: { requiresAuth: true, roles: ['teacher'] }
       },
       {
-        path: '/assignments/:id/edit',
+          path: '/assignments/:id/edit',
         name: 'AssignmentEdit',
         component: () => import('../views/teacher/AssignmentEditor.vue'),
         meta: { requiresAuth: true, roles: ['teacher'] }
+      },
+      {
+        path: '/exams/new',
+        name: 'ExamCreate',
+        component: () => import('../views/teacher/ExamEditor.vue'),
+        meta: { requiresAuth: true, roles: ['teacher'] }
+      },
+      {
+        path: '/exams/:id/edit',
+        name: 'ExamEdit',
+        component: () => import('../views/teacher/ExamEditor.vue'),
+        meta: { requiresAuth: true, roles: ['teacher'] }
+      },
+      {
+        path: '/exams/:id/notice',
+        name: 'ExamNotice',
+        component: () => import('../views/common/ExamNotice.vue'),
+        meta: { requiresAuth: true, roles: ['student'] }
+      },
+      {
+        path: '/exams/:id',
+        name: 'ExamDetail',
+        component: () => import('../views/common/ExamDetail.vue'),
+        meta: { requiresAuth: true, roles: ['student', 'teacher'] }
       },
     {
       path: '/login',
@@ -124,6 +148,11 @@ const router = createRouter({
               path: 'assignments',
               name: 'course-assignments',
               component: () => import('@/views/common/AssignmentManager.vue')
+            },
+            {
+              path: 'exams',
+              name: 'course-exams',
+              component: () => import('@/views/common/ExamManager.vue')
             }
             // 其他子路由可以根据需要在这里添加
           ]

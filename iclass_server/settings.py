@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'feedback',
     'interaction',
     'logs',
+    'exams',
 ]
 
 MIDDLEWARE = [
