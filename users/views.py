@@ -19,16 +19,6 @@ class StandardResultsSetPagination(PageNumberPagination):
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
-    def post(self, request, *args, **kwargs):
-        response = super().post(request, *args, **kwargs)
-        if response.status_code == 200:
-            username = request.data.get('username')
-            Log.objects.create(
-                level='INFO',
-                message=f'用户 {username} 登录成功'
-            )
-        return response
-
 class UserViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
