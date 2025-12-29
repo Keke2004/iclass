@@ -1,29 +1,31 @@
 <template>
   <div class="topic-detail-container">
-    <el-card v-if="topic" class="topic-main-card">
-      <template #header>
-        <div class="topic-header">
-          <h2>{{ topic.title }}</h2>
-          <span class="topic-meta">
-            由 {{ topic.author.username }} 发布于 {{ new Date(topic.created_at).toLocaleString() }}
-          </span>
-        </div>
-      </template>
-      <div class="topic-content" v-html="topic.content"></div>
-    </el-card>
+    <div class="scrollable-content">
+      <el-card v-if="topic" class="topic-main-card">
+        <template #header>
+          <div class="topic-header">
+            <h2>{{ topic.title }}</h2>
+            <span class="topic-meta">
+              由 {{ topic.author.username }} 发布于 {{ new Date(topic.created_at).toLocaleString() }}
+            </span>
+          </div>
+        </template>
+        <div class="topic-content" v-html="topic.content"></div>
+      </el-card>
 
-    <div class="replies-section">
-      <h3>{{ replies.length }} 条回复</h3>
-      <el-card v-for="reply in replies" :key="reply.id" class="reply-card">
-        <div class="reply-header">
-          <span class="reply-author">{{ reply.author.username }}</span>
-          <span class="reply-time">{{ new Date(reply.created_at).toLocaleString() }}</span>
-        </div>
-        <div class="reply-content" v-html="reply.content"></div>
-      </el-card>
-      <el-card v-if="replies.length === 0" class="no-replies-card">
-        <p>还没有人回复，快来抢沙发吧！</p>
-      </el-card>
+      <div class="replies-section">
+        <h3>{{ replies.length }} 条回复</h3>
+        <el-card v-for="reply in replies" :key="reply.id" class="reply-card">
+          <div class="reply-header">
+            <span class="reply-author">{{ reply.author.username }}</span>
+            <span class="reply-time">{{ new Date(reply.created_at).toLocaleString() }}</span>
+          </div>
+          <div class="reply-content" v-html="reply.content"></div>
+        </el-card>
+        <el-card v-if="replies.length === 0" class="no-replies-card">
+          <p>还没有人回复，快来抢沙发吧！</p>
+        </el-card>
+      </div>
     </div>
 
     <div class="new-reply-section">
@@ -117,8 +119,19 @@ onMounted(() => {
 
 <style scoped>
 .topic-detail-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 150px); /* Adjust based on actual layout needs */
   padding: 20px;
+  box-sizing: border-box;
 }
+
+.scrollable-content {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding-right: 15px; /* To avoid scrollbar overlapping content */
+}
+
 .topic-main-card {
   margin-bottom: 20px;
 }
@@ -161,8 +174,10 @@ onMounted(() => {
   color: #909399;
 }
 .new-reply-section {
+  flex-shrink: 0; /* Prevent this section from shrinking */
   background-color: #f9f9f9;
   padding: 20px;
   border-radius: 8px;
+  margin-top: 20px; /* Add some space above the reply box */
 }
 </style>

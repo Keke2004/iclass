@@ -125,6 +125,12 @@ const router = createRouter({
               component: () => import('@/views/common/DiscussionManager.vue')
             },
             {
+              path: 'discussions/:topicId',
+              name: 'course-discussion-detail',
+              component: () => import('@/views/common/DiscussionTopicDetail.vue'),
+              props: true
+            },
+            {
               path: 'chapters',
               name: 'chapter-manager',
               component: () => import('@/views/common/ChapterManager.vue')
