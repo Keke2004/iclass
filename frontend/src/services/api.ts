@@ -91,5 +91,16 @@ export const getSubmissionsForExam = (examId: number) => apiClient.get(`/exams/$
 export const submitExam = (id: number, data: any) => apiClient.post(`/exam-submissions/${id}/submit/`, data);
 export const gradeExamSubmission = (id: number, data: any) => apiClient.post(`/exam-submissions/${id}/grade/`, data);
 
+// 课程成员
+export const getCourseMembers = (courseId: number) => apiClient.get(`/courses/${courseId}/members/`);
+
+// 签到相关 API
+export const getCheckins = (courseId: number) => apiClient.get(`/courses/${courseId}/checkins/`);
+export const createCheckin = (courseId: number, data: { title: string }) => apiClient.post(`/courses/${courseId}/checkins/`, data);
+export const getCheckinDetail = (courseId: number, checkinId: number) => apiClient.get(`/courses/${courseId}/checkins/${checkinId}/`);
+export const endCheckin = (courseId: number, checkinId: number) => apiClient.post(`/courses/${courseId}/checkins/${checkinId}/end_checkin/`);
+export const studentCheckin = (courseId: number, checkinId: number) => apiClient.post(`/courses/${courseId}/checkins/${checkinId}/student_checkin/`);
+export const proxyCheckin = (courseId: number, checkinId: number, studentId: number) => apiClient.post(`/courses/${courseId}/checkins/${checkinId}/proxy_checkin/`, { student_id: studentId });
+
 
 export default apiClient;

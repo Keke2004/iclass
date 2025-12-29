@@ -1,0 +1,214 @@
+<template>
+  <div v-if="checkin" class="checkin-detail-container">
+    <el-page-header @back="goBack" :content="checkin.title"></el-page-header>
+
+    <div class="info-card">
+      <p><strong>状态:</strong> {{ checkin.is_active ? '进行中' : '已结束' }}</p>
+      <p><strong>开始时间:</strong> {{ formatTime(checkin.start_time) }}</p>
+      <p v-if="checkin.end_time"><strong>结束时间:</strong> {{ formatTime(checkin.end_time) }}</p>
+    </div>
+
+    <!-- 学生视图 -->
+    <div v-if="!isTeacher">
+      <div v-if="checkin.is_active && !checkin.is_checked_in" class="action-card">
+        <el-button type="primary" @click="handleStudentCheckin" :loading="loading">立即签到</el-button>
+      </div>
+      <div v-if="checkin.is_checked_in" class="success-message">
+        <el-icon color="green" size="50"><CircleCheckFilled /></el-icon>
+        <p>签到成功</p>
+      </div>
+       <div v-if="!checkin.is_active && !checkin.is_checked_in" class="info-message">
+        <p>签到已结束</p>
+      </div>
+    </div>
+
+    <!-- 教师视图 -->
+    <div v-if="isTeacher">
+      <div class="action-card">
+        <el-button v-if="checkin.is_active" type="danger" @click="handleEndCheckin" :loading="loading">结束签到</el-button>
+        <el-button v-else disabled>签到已结束</el-button>
+      </div>
+
+      <div class="records-card">
+        <h3>签到记录 ({{ records.length }})</h3>
+        <el-table :data="records" stripe style="width: 100%">
+          <el-table-column prop="student.username" label="姓名"></el-table-column>
+          <el-table-column prop="checkin_time" label="签到时间">
+            <template #default="scope">
+              {{ formatTime(scope.row.checkin_time) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="状态">
+            <template #default="scope">
+              <el-tag :type="scope.row.is_manual ? 'warning' : 'success'">
+                {{ scope.row.is_manual ? '老师代签' : '正常' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <div class="proxy-card">
+        <h3>代签</h3>
+        <el-select v-model="selectedStudent" placeholder="选择未签到的学生" filterable>
+          <el-option
+            v-for="student in uncheckinStudents"
+            :key="student.id"
+            :label="student.username"
+            :value="student.id">
+          </el-option>
+        </el-select>
+        <el-button type="primary" @click="handleProxyCheckin" :loading="proxyLoading" :disabled="!selectedStudent">确认代签</el-button>
+      </div>
+    </div>
+  </div>
+  <div v-else>
+    <p>加载中...</p>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { getCheckinDetail, studentCheckin, endCheckin, proxyCheckin, getCourseMembers } from '@/services/api';
+import type { Checkin, CheckinRecord, User } from '@/types';
+import { CircleCheckFilled } from '@element-plus/icons-vue';
+
+const route = useRoute();
+const router = useRouter();
+
+const checkin = ref<Checkin | null>(null);
+const records = ref<CheckinRecord[]>([]);
+const allStudents = ref<User[]>([]);
+const loading = ref(false);
+const proxyLoading = ref(false);
+const selectedStudent = ref<number | null>(null);
+
+const courseId = Number(route.params.id);
+const checkinId = Number(route.params.checkinId);
+const isTeacher = computed(() => localStorage.getItem('user_role') === 'teacher');
+
+const fetchCheckinDetail = async () => {
+  try {
+    const response = await getCheckinDetail(courseId, checkinId);
+    checkin.value = response.data;
+    records.value = response.data.records || [];
+  } catch (error) {
+    ElMessage.error('获取签到详情失败');
+    console.error(error);
+  }
+};
+
+const fetchCourseMembers = async () => {
+  if (!isTeacher.value) return;
+  try {
+    const response = await getCourseMembers(courseId);
+    // The backend returns an object with 'teacher' and 'students' keys.
+    allStudents.value = response.data.students.filter((user: User) => user.role === 'student');
+  } catch (error) {
+    ElMessage.error('获取学生列表失败');
+  }
+}
+
+const uncheckinStudents = computed(() => {
+  const checkedInStudentIds = new Set(records.value.map(r => r.student.id));
+  return allStudents.value.filter(s => !checkedInStudentIds.has(s.id));
+});
+
+onMounted(() => {
+  fetchCheckinDetail();
+  fetchCourseMembers();
+});
+
+const goBack = () => {
+  router.push(`/courses/${courseId}/tasks`);
+};
+
+const formatTime = (timeStr: string) => {
+  return new Date(timeStr).toLocaleString();
+};
+
+const handleStudentCheckin = async () => {
+  loading.value = true;
+  try {
+    await studentCheckin(courseId, checkinId);
+    ElMessage.success('签到成功！');
+    await fetchCheckinDetail(); // 重新获取数据刷新状态
+  } catch (error: any) {
+    if (error.response && error.response.data.detail) {
+        ElMessage.error(error.response.data.detail);
+    } else {
+        ElMessage.error('签到失败');
+    }
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleEndCheckin = async () => {
+  ElMessageBox.confirm('确定要结束本次签到吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(async () => {
+    loading.value = true;
+    try {
+      await endCheckin(courseId, checkinId);
+      ElMessage.success('签到已结束');
+      await fetchCheckinDetail();
+    } catch (error) {
+      ElMessage.error('操作失败');
+    } finally {
+      loading.value = false;
+    }
+  });
+};
+
+const handleProxyCheckin = async () => {
+  if (!selectedStudent.value) return;
+  proxyLoading.value = true;
+  try {
+    await proxyCheckin(courseId, checkinId, selectedStudent.value);
+    ElMessage.success('代签成功');
+    selectedStudent.value = null;
+    await fetchCheckinDetail(); // 刷新签到记录
+    await fetchCourseMembers(); // 刷新未签到学生列表
+  } catch (error) {
+    ElMessage.error('代签失败');
+  } finally {
+    proxyLoading.value = false;
+  }
+};
+</script>
+
+<style scoped>
+.checkin-detail-container {
+  padding: 20px;
+}
+.info-card, .action-card, .records-card, .proxy-card, .success-message, .info-message {
+  background-color: #fff;
+  padding: 20px;
+  margin-top: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+}
+.success-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 18px;
+  color: #67c23a;
+}
+.info-message {
+  text-align: center;
+  font-size: 18px;
+  color: #909399;
+}
+.proxy-card .el-select {
+  margin-right: 10px;
+  width: 200px;
+}
+</style>

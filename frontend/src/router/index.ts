@@ -114,6 +114,12 @@ const router = createRouter({
               component: () => import('@/views/common/TaskManager.vue') // 假设任务组件路径
             },
             {
+              path: 'tasks/:checkinId',
+              name: 'checkin-detail',
+              component: () => import('@/views/common/CheckinDetail.vue'),
+              props: true
+            },
+            {
               path: 'discussions',
               name: 'course-discussions',
               component: () => import('@/views/common/DiscussionManager.vue')

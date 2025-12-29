@@ -55,3 +55,31 @@ class IsAuthorOrTeacherOrReadOnly(permissions.BasePermission):
 
         # Write permissions are only allowed to the author of the object or the course teacher.
         return obj.author == request.user or obj.course.teacher == request.user
+
+class IsCourseTeacher(permissions.BasePermission):
+    """
+    Permission to only allow the teacher of the course to perform an action.
+    """
+    def has_permission(self, request, view):
+        course_id = view.kwargs.get('course_pk') or view.kwargs.get('course_id')
+        if not course_id:
+            return False
+        try:
+            course = Course.objects.get(pk=course_id)
+        except Course.DoesNotExist:
+            return False
+        return course.teacher == request.user
+
+class IsCourseStudent(permissions.BasePermission):
+    """
+    Permission to only allow students of the course to perform an action.
+    """
+    def has_permission(self, request, view):
+        course_id = view.kwargs.get('course_pk') or view.kwargs.get('course_id')
+        if not course_id:
+            return False
+        try:
+            course = Course.objects.get(pk=course_id)
+        except Course.DoesNotExist:
+            return False
+        return request.user in course.students.all()

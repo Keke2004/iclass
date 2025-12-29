@@ -9,6 +9,7 @@ from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from users.models import User
+from users.serializers import UserSerializer
 from .models import Course, CourseMaterial, Announcement, Chapter
 from .serializers import (
     CourseSerializer, CourseListSerializer, CourseMaterialSerializer, 
@@ -120,6 +121,29 @@ class CourseViewSet(viewsets.ModelViewSet):
 
         course.students.remove(student)
         return Response({'status': 'Student removed successfully.'}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def members(self, request, pk=None):
+        """
+        Get all members (students and teachers) of a course.
+        """
+        course = self.get_object()
+        # 验证用户是否有权查看成员列表
+        if not (request.user.is_staff or course.teacher == request.user or request.user in course.students.all()):
+            return Response({"detail": "You do not have permission to view course members."}, status=status.HTTP_403_FORBIDDEN)
+        
+        # 同时获取教师和学生
+        teacher = course.teacher
+        students = course.students.all()
+        
+        # 使用 UserSerializer 序列化
+        teacher_serializer = UserSerializer(teacher)
+        students_serializer = UserSerializer(students, many=True)
+        
+        return Response({
+            'teacher': teacher_serializer.data,
+            'students': students_serializer.data
+        })
 
 class CourseMaterialViewSet(viewsets.ModelViewSet):
     """
