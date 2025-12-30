@@ -111,3 +111,16 @@ class AnnouncementSerializer(serializers.ModelSerializer):
         model = Announcement
         fields = ['id', 'title', 'content', 'course', 'created_at']
         read_only_fields = ['course']
+
+
+class LearningRecordSerializer(serializers.Serializer):
+    """
+    学习记录序列化器
+    """
+    student_id = serializers.IntegerField()
+    student_name = serializers.CharField()
+    checkin_rate = serializers.FloatField()
+    assignment_completion_rate = serializers.FloatField()
+    exam_completion_rate = serializers.FloatField()
+    discussion_topic_count = serializers.IntegerField()
+    discussion_reply_count = serializers.IntegerField()

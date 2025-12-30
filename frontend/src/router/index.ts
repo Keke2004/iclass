@@ -165,6 +165,11 @@ const router = createRouter({
               path: 'exams',
               name: 'course-exams',
               component: () => import('@/views/common/ExamManager.vue')
+            },
+            {
+              path: 'learning-records',
+              name: 'course-learning-records',
+              component: () => import('@/views/common/LearningRecord.vue')
             }
             // 其他子路由可以根据需要在这里添加
           ]

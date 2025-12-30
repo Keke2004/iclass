@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework_nested import routers
-from .views import CourseViewSet, CourseMaterialViewSet, AnnouncementViewSet, ChapterViewSet
+from .views import CourseViewSet, CourseMaterialViewSet, AnnouncementViewSet, ChapterViewSet, LearningRecordView
 from checkin.views import CheckinViewSet
 
 router = routers.DefaultRouter()
@@ -16,4 +16,5 @@ courses_router.register(r'checkins', CheckinViewSet, basename='course-checkins')
 urlpatterns = [
     path('', include(router.urls)),
     path('', include(courses_router.urls)),
+    path('courses/<int:course_id>/learning_records/', LearningRecordView.as_view(), name='learning-records'),
 ]

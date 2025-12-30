@@ -46,6 +46,10 @@
             <el-icon><el-icon-user /></el-icon>
             <span>成员</span>
           </el-menu-item>
+          <el-menu-item index="learning-records">
+            <el-icon><el-icon-data-analysis /></el-icon>
+            <span>学习记录</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
 
@@ -72,7 +76,8 @@ import {
   Finished as ElIconFinished,
   Bell as ElIconBell,
   Folder as ElIconFolder,
-  User as ElIconUser
+  User as ElIconUser,
+  DataAnalysis as ElIconDataAnalysis
 } from '@element-plus/icons-vue';
 import { ElMessage, ElContainer, ElAside, ElMain, ElMenu, ElMenuItem, ElIcon, ElButton } from 'element-plus';
 
@@ -100,6 +105,7 @@ const routeNameToMenuIndex: { [key: string]: string } = {
   'course-materials': 'materials',
   'course-assignments': 'assignments',
   'course-exams': 'exams',
+  'course-learning-records': 'learning-records',
 };
 
 const handleMenuSelect = (index: string) => {
@@ -112,6 +118,7 @@ const handleMenuSelect = (index: string) => {
     materials: 'course-materials',
     assignments: 'course-assignments',
     exams: 'course-exams',
+    'learning-records': 'course-learning-records',
   };
   const routeName = menuIndexToRouteName[index];
   if (routeName) {

@@ -8,14 +8,20 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from users.models import User
 from users.serializers import UserSerializer
 from .models import Course, CourseMaterial, Announcement, Chapter
 from .serializers import (
     CourseSerializer, CourseListSerializer, CourseMaterialSerializer, 
-    AnnouncementSerializer, ChapterSerializer, ChapterWriteSerializer
+    AnnouncementSerializer, ChapterSerializer, ChapterWriteSerializer,
+    LearningRecordSerializer
 )
 from .permissions import IsTeacherOrReadOnly
+from checkin.models import Checkin, CheckinRecord
+from assignments.models import Assignment, Submission
+from exams.models import Exam, ExamSubmission
+from interaction.models import DiscussionTopic, DiscussionReply
 
 class ChapterViewSet(viewsets.ModelViewSet):
     """
@@ -306,3 +312,85 @@ def ranged_media_view(request, path):
         response['Content-Length'] = str(file_size)
         response['Accept-Ranges'] = 'bytes'
         return response
+
+class LearningRecordView(APIView):
+    """
+    获取单个学生或整个课程的学习记录
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, course_id):
+        course = get_object_or_404(Course, pk=course_id)
+        user = request.user
+
+        # 验证用户权限
+        if not (user.is_staff or course.teacher == user or user in course.students.all()):
+            return Response({"detail": "您没有权限查看此课程的学习记录。"}, status=status.HTTP_403_FORBIDDEN)
+
+        # 教师或管理员可以查看指定学生或所有学生
+        if user.is_teacher or user.is_staff:
+            student_id = request.query_params.get('student_id')
+            if student_id:
+                try:
+                    students_to_process = [User.objects.get(id=student_id, enrolled_courses=course)]
+                except User.DoesNotExist:
+                    return Response({"detail": "学生不存在或未加入该课程。"}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                students_to_process = course.students.all()
+        else: # 学生只能查看自己的记录
+            students_to_process = [user]
+
+        learning_records = []
+        for student in students_to_process:
+            # 1. 签到统计
+            total_checkins = Checkin.objects.filter(course=course).count()
+            student_records = CheckinRecord.objects.filter(checkin__course=course, student=student)
+            
+            checkin_summary = {
+                'total': total_checkins,
+                'present': student_records.filter(status='present').count(),
+                'late': student_records.filter(status='late').count(),
+                'absent': total_checkins - student_records.exclude(status='absent').count(), # 缺勤 = 总数 - 非缺勤
+                'sick_leave': student_records.filter(status='sick_leave').count(),
+                'personal_leave': student_records.filter(status='personal_leave').count(),
+            }
+            # 出勤率 = (出勤 + 迟到) / 总数
+            attendance_count = checkin_summary['present'] + checkin_summary['late']
+            checkin_summary['attendance_rate'] = (attendance_count / total_checkins * 100) if total_checkins > 0 else 0
+
+            # 2. 作业统计
+            total_assignments = Assignment.objects.filter(course=course).count()
+            completed_assignments = Submission.objects.filter(assignment__course=course, student=student).count()
+            assignment_summary = {
+                'total': total_assignments,
+                'completed': completed_assignments,
+                'completion_rate': (completed_assignments / total_assignments * 100) if total_assignments > 0 else 0
+            }
+
+            # 3. 考试统计
+            total_exams = Exam.objects.filter(course=course).count()
+            completed_exams = ExamSubmission.objects.filter(exam__course=course, student=student, status__in=['submitted', 'graded']).count()
+            exam_summary = {
+                'total': total_exams,
+                'completed': completed_exams,
+                'completion_rate': (completed_exams / total_exams * 100) if total_exams > 0 else 0
+            }
+
+            # 4. 讨论统计
+            discussion_summary = {
+                'topic_count': DiscussionTopic.objects.filter(course=course, author=student).count(),
+                'reply_count': DiscussionReply.objects.filter(topic__course=course, author=student).count(),
+            }
+
+            learning_records.append({
+                'student_id': student.id,
+                'student_name': student.get_full_name() or student.username,
+                'checkin_summary': checkin_summary,
+                'assignment_summary': assignment_summary,
+                'exam_summary': exam_summary,
+                'discussion_summary': discussion_summary,
+            })
+        
+        # 注意：由于数据结构已更改，旧的 LearningRecordSerializer 可能不再适用
+        # 我们直接返回字典列表，DRF 会自动处理 JSON 序列化
+        return Response(learning_records)
