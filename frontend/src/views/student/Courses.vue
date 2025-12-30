@@ -20,17 +20,8 @@
 
     <el-row :gutter="20" v-else>
       <el-col :span="8" v-for="course in filteredCourses" :key="course.id">
-        <el-card class="course-card">
-          <template #header>
-            <div class="card-header">
-              <span>{{ course.name }}</span>
-            </div>
-          </template>
-          <p class="course-description">{{ course.description }}</p>
-          <div class="card-footer">
-            <el-button type="primary" link @click="navigateToCourse(course.id)">进入课程</el-button>
-          </div>
-        </el-card>
+        <course-card :course="course" @click="navigateToCourse(course.id)">
+        </course-card>
       </el-col>
     </el-row>
   </div>
@@ -41,12 +32,19 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import apiClient from '../../services/api';
 import { ElMessage } from 'element-plus';
+import CourseCard from '../../components/CourseCard.vue';
+
+interface Teacher {
+  id: number;
+  username: string;
+  role: string;
+}
 
 interface Course {
   id: number;
   name: string;
   description: string;
-  teacher: number;
+  teacher: Teacher;
 }
 
 const courses = ref<Course[]>([]);
@@ -95,21 +93,6 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-}
-.course-card {
-  margin-bottom: 20px;
-}
-.card-header {
-  font-weight: bold;
-}
-.course-description {
-  color: #606266;
-  font-size: 14px;
-  min-height: 60px;
-}
-.card-footer {
-  text-align: right;
-  margin-top: 10px;
 }
 .loading-state, .empty-state {
   text-align: center;

@@ -42,6 +42,11 @@ class ExamViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = Exam.objects.all()
 
+        # Filter by course if 'course' query param is provided
+        course_id = self.request.query_params.get('course')
+        if course_id:
+            queryset = queryset.filter(course_id=course_id)
+
         if not (user.is_staff or user.is_superuser):
             teacher_courses = user.teaching_courses.all()
             student_courses = user.enrolled_courses.all()

@@ -44,14 +44,10 @@
 
           <!-- 教师菜单 -->
           <template v-if="userRole === 'teacher'">
-            <el-sub-menu index="teacher-courses">
-              <template #title>
-                <el-icon><management /></el-icon>
-                <span>课程管理</span>
-              </template>
-              <el-menu-item index="/teacher/courses">课程列表</el-menu-item>
-              <el-menu-item index="/teacher/courses/create">创建课程</el-menu-item>
-            </el-sub-menu>
+            <el-menu-item index="/teacher/courses">
+              <el-icon><management /></el-icon>
+              <span>课程列表</span>
+            </el-menu-item>
           </template>
 
           <!-- 管理员菜单 -->

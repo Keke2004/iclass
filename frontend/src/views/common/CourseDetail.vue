@@ -84,7 +84,6 @@ import { ElMessage, ElContainer, ElAside, ElMain, ElMenu, ElMenuItem, ElIcon, El
 interface Course {
   id: number;
   name: string;
-  description: string;
 }
 
 const route = useRoute();

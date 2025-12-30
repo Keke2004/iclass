@@ -6,14 +6,6 @@
         <el-form-item label="课程名称" prop="name">
           <el-input v-model="courseForm.name" placeholder="请输入课程名称"></el-input>
         </el-form-item>
-        <el-form-item label="课程描述" prop="description">
-          <el-input
-            v-model="courseForm.description"
-            type="textarea"
-            :rows="4"
-            placeholder="请输入课程描述"
-          ></el-input>
-        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="submitForm">立即创建</el-button>
           <el-button @click="resetForm">重置</el-button>
@@ -37,13 +29,11 @@ const router = useRouter();
 // 表单数据
 const courseForm = reactive({
   name: '',
-  description: '',
 });
 
 // 表单验证规则
 const rules = reactive<FormRules>({
   name: [{ required: true, message: '请输入课程名称', trigger: 'blur' }],
-  description: [{ required: true, message: '请输入课程描述', trigger: 'blur' }],
 });
 
 // 提交表单

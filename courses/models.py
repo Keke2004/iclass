@@ -8,7 +8,7 @@ class Course(models.Model):
     name = models.CharField(max_length=100, verbose_name='课程名称')
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name='teaching_courses', verbose_name='授课教师')
     students = models.ManyToManyField(User, related_name='enrolled_courses', blank=True, verbose_name='课程学生')
-    description = models.TextField(blank=True, null=True, verbose_name='课程描述')
+    cover = models.CharField(max_length=255, blank=True, null=True, verbose_name='课程封面')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
 
     def __str__(self):

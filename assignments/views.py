@@ -21,17 +21,22 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_staff or user.is_superuser:
-            return Assignment.objects.all()
+        queryset = Assignment.objects.all()
+
+        # Filter by course if 'course' query param is provided
+        course_id = self.request.query_params.get('course')
+        if course_id:
+            queryset = queryset.filter(course_id=course_id)
         
-        # Get courses where the user is a teacher or a student
-        teacher_courses = user.teaching_courses.all()
-        student_courses = user.enrolled_courses.all()
-        
-        # Filter assignments based on these courses
-        return Assignment.objects.filter(
-            Q(course__in=teacher_courses) | Q(course__in=student_courses)
-        ).distinct()
+        # Further restrict to user's courses if not staff/superuser
+        if not (user.is_staff or user.is_superuser):
+            teacher_courses = user.teaching_courses.all()
+            student_courses = user.enrolled_courses.all()
+            queryset = queryset.filter(
+                Q(course__in=teacher_courses) | Q(course__in=student_courses)
+            ).distinct()
+            
+        return queryset
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
