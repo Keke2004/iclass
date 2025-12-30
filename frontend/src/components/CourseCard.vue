@@ -2,7 +2,7 @@
   <el-card class="course-card" shadow="hover" :body-style="{ padding: '0px' }">
     <div class="card-image">
       <el-image
-        :src="course.cover"
+        :src="course.cover || 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80'"
         fit="cover"
       />
     </div>
@@ -29,8 +29,9 @@ interface Teacher {
 interface Course {
   id: number;
   name: string;
+  description: string;
   teacher: Teacher;
-  cover: string;
+  cover?: string; // 封面图片是可选的
 }
 
 defineProps<{

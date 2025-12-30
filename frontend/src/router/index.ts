@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import Layout from '../components/Layout.vue'
@@ -10,6 +11,12 @@ const router = createRouter({
         path: '/assignments/:id',
         name: 'AssignmentDetail',
         component: () => import('../views/common/AssignmentDetail.vue')
+      },
+      {
+        path: '/assignments/new',
+        name: 'AssignmentCreate',
+        component: () => import('../views/teacher/AssignmentEditor.vue'),
+        meta: { requiresAuth: true, roles: ['teacher'] }
       },
       {
           path: '/assignments/:id/edit',
