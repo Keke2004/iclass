@@ -25,8 +25,9 @@
     <!-- 教师视图 -->
     <div v-if="isTeacher">
       <div class="action-card">
-        <el-button v-if="checkin.is_active" type="danger" @click="handleEndCheckin" :loading="loading">结束签到</el-button>
+        <el-button v-if="checkin.is_active" type="warning" @click="handleEndCheckin" :loading="loading">结束签到</el-button>
         <el-button v-else disabled>签到已结束</el-button>
+        <el-button type="danger" @click="handleDeleteCheckin" :loading="loading">删除签到</el-button>
       </div>
 
       <div class="records-card">
@@ -71,7 +72,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { getCheckinDetail, studentCheckin, endCheckin, proxyCheckin, getCourseMembers } from '@/services/api';
+import { getCheckinDetail, studentCheckin, endCheckin, proxyCheckin, getCourseMembers, deleteCheckin } from '@/services/api';
 import type { Checkin, CheckinRecord, User } from '@/types';
 import { CircleCheckFilled } from '@element-plus/icons-vue';
 
@@ -165,6 +166,25 @@ const handleEndCheckin = async () => {
   });
 };
 
+const handleDeleteCheckin = async () => {
+  ElMessageBox.confirm('确定要删除本次签到吗？此操作不可恢复。', '警告', {
+    confirmButtonText: '确定删除',
+    cancelButtonText: '取消',
+    type: 'error',
+  }).then(async () => {
+    loading.value = true;
+    try {
+      await deleteCheckin(courseId, checkinId);
+      ElMessage.success('签到已删除');
+      goBack(); // Redirect to the list page
+    } catch (error) {
+      ElMessage.error('删除失败');
+    } finally {
+      loading.value = false;
+    }
+  });
+};
+
 const handleProxyCheckin = async () => {
   if (!selectedStudent.value) return;
   proxyLoading.value = true;
@@ -210,5 +230,14 @@ const handleProxyCheckin = async () => {
 .proxy-card .el-select {
   margin-right: 10px;
   width: 200px;
+}
+.action-card {
+  display: flex;
+}
+.action-card .el-button {
+  margin-left: 10px;
+}
+.action-card .el-button:first-child {
+  margin-left: 0;
 }
 </style>

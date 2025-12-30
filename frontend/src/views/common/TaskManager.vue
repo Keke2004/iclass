@@ -5,30 +5,33 @@
       <el-button v-if="isTeacher" @click="showCreateCheckinDialog = true" type="primary">发起签到</el-button>
     </div>
 
-    <el-timeline v-if="checkins.length > 0">
-      <el-timeline-item
-        v-for="checkin in checkins"
-        :key="checkin.id"
-        :timestamp="formatTime(checkin.start_time)"
-        placement="top"
-      >
-        <el-card @click="goToCheckinDetail(checkin.id)" class="checkin-card">
-          <h4>{{ checkin.title }}</h4>
-          <p>
-            状态:
-            <el-tag :type="checkin.is_active ? 'success' : 'info'">
-              {{ checkin.is_active ? '进行中' : '已结束' }}
-            </el-tag>
-          </p>
-          <p v-if="!isTeacher">
-            我的状态:
-            <el-tag :type="checkin.is_checked_in ? 'success' : 'danger'">
-              {{ checkin.is_checked_in ? '已签到' : '未签到' }}
-            </el-tag>
-          </p>
-        </el-card>
-      </el-timeline-item>
-    </el-timeline>
+    <div v-if="checkins.length > 0">
+      <div class="checkin-section" v-if="ongoingCheckins.length > 0">
+        <h3 class="section-title">进行中 ({{ ongoingCheckins.length }})</h3>
+        <div class="checkin-list">
+          <div v-for="checkin in ongoingCheckins" :key="checkin.id" class="checkin-item" @click="goToCheckinDetail(checkin.id)">
+            <div class="checkin-icon-wrapper status-ongoing">
+              <div class="checkin-icon">签到</div>
+            </div>
+            <div class="checkin-title">{{ checkin.title }}</div>
+            <div class="checkin-time">开始时间: {{ formatTime(checkin.start_time) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="checkin-section" v-if="endedCheckins.length > 0">
+        <h3 class="section-title">已结束 ({{ endedCheckins.length }})</h3>
+        <div class="checkin-list">
+          <div v-for="checkin in endedCheckins" :key="checkin.id" class="checkin-item" @click="goToCheckinDetail(checkin.id)">
+            <div class="checkin-icon-wrapper status-ended">
+              <div class="checkin-icon">签到</div>
+            </div>
+            <div class="checkin-title">{{ checkin.title }}</div>
+            <div class="checkin-time">结束时间: {{ formatTime(checkin.end_time || checkin.start_time) }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
     <el-empty v-else description="暂无签到任务"></el-empty>
 
     <el-dialog title="发起签到" v-model="showCreateCheckinDialog" width="30%">
@@ -66,6 +69,9 @@ const newCheckinForm = ref({
 
 const userRole = localStorage.getItem('user_role');
 const isTeacher = computed(() => userRole === 'teacher');
+
+const ongoingCheckins = computed(() => checkins.value.filter(c => c.is_active));
+const endedCheckins = computed(() => checkins.value.filter(c => !c.is_active));
 
 const fetchCheckins = async () => {
   try {
@@ -112,10 +118,61 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 20px;
 }
-.checkin-card {
-  cursor: pointer;
+.checkin-section {
+  margin-bottom: 30px;
 }
-.checkin-card:hover {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 15px;
+}
+.checkin-list {
+  background-color: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+}
+.checkin-item {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+.checkin-item:not(:last-child) {
+  border-bottom: 1px solid #e8e8e8;
+}
+.checkin-item:hover {
+  background-color: #f5f7fa;
+}
+.checkin-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  flex-shrink: 0;
+}
+.checkin-icon {
+  color: #fff;
+  font-size: 14px;
+}
+.status-ongoing {
+  background-color: #409eff; /* Blue for ongoing */
+}
+.status-ended {
+  background-color: #c0c4cc; /* Gray for ended */
+}
+.checkin-title {
+  flex-grow: 1;
+  font-size: 16px;
+  color: #333;
+}
+.checkin-time {
+  font-size: 14px;
+  color: #999;
+  margin-left: 15px;
 }
 </style>
