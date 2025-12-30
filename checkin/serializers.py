@@ -7,7 +7,7 @@ class CheckinRecordSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CheckinRecord
-        fields = ('id', 'student', 'checkin_time', 'is_manual')
+        fields = ('id', 'student', 'checkin_time', 'status', 'is_manual')
 
 class CheckinSerializer(serializers.ModelSerializer):
     records = CheckinRecordSerializer(many=True, read_only=True)

@@ -100,7 +100,7 @@ export const createCheckin = (courseId: number, data: { title: string }) => apiC
 export const getCheckinDetail = (courseId: number, checkinId: number) => apiClient.get(`/courses/${courseId}/checkins/${checkinId}/`);
 export const endCheckin = (courseId: number, checkinId: number) => apiClient.post(`/courses/${courseId}/checkins/${checkinId}/end_checkin/`);
 export const studentCheckin = (courseId: number, checkinId: number) => apiClient.post(`/courses/${courseId}/checkins/${checkinId}/student_checkin/`);
-export const proxyCheckin = (courseId: number, checkinId: number, studentId: number) => apiClient.post(`/courses/${courseId}/checkins/${checkinId}/proxy_checkin/`, { student_id: studentId });
+export const proxyCheckin = (courseId: number, checkinId: number, studentId: number, status: string) => apiClient.post(`/courses/${courseId}/checkins/${checkinId}/proxy_checkin/`, { student_id: studentId, status: status });
 export const deleteCheckin = (courseId: number, checkinId: number) => apiClient.delete(`/courses/${courseId}/checkins/${checkinId}/`);
 
 

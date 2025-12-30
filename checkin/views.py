@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -55,8 +56,17 @@ class CheckinViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def proxy_checkin(self, request, pk=None, course_pk=None):
         student_id = request.data.get('student_id')
+        status_val = request.data.get('status')
+
         if not student_id:
             return Response({'error': 'Student ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not status_val:
+            return Response({'error': 'Status is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        valid_statuses = [s[0] for s in CheckinRecord.STATUS_CHOICES]
+        if status_val not in valid_statuses:
+            return Response({'error': 'Invalid status value'}, status=status.HTTP_400_BAD_REQUEST)
 
         checkin = self.get_object()
         try:
@@ -64,14 +74,22 @@ class CheckinViewSet(viewsets.ModelViewSet):
         except User.DoesNotExist:
             return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        record, created = CheckinRecord.objects.get_or_create(
+        defaults = {
+            'status': status_val,
+            'is_manual': True,
+        }
+        # 仅当状态为出勤或迟到时，才更新签到时间
+        if status_val in ['present', 'late']:
+            defaults['checkin_time'] = timezone.now()
+        else:
+            defaults['checkin_time'] = None
+
+
+        record, created = CheckinRecord.objects.update_or_create(
             checkin=checkin,
             student=student,
-            defaults={'is_manual': True}
+            defaults=defaults
         )
 
-        if not created:
-            return Response({'error': 'Student has already checked in'}, status=status.HTTP_400_BAD_REQUEST)
-
         serializer = CheckinRecordSerializer(record)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
