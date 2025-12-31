@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import DiscussionTopic, DiscussionReply, Attendance, Question, Vote, VoteChoice, VoteResponse, Discussion
+from .models import DiscussionTopic, DiscussionReply, Attendance, Question, Vote, VoteChoice, VoteResponse, Discussion, RandomQuestion
 from users.serializers import UserSerializer
 
 class DiscussionReplySerializer(serializers.ModelSerializer):
@@ -52,3 +52,12 @@ class DiscussionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Discussion
         fields = ['id', 'course', 'student', 'message', 'created_at']
+
+
+class RandomQuestionSerializer(serializers.ModelSerializer):
+    student = UserSerializer(read_only=True)
+
+    class Meta:
+        model = RandomQuestion
+        fields = ('id', 'course', 'student', 'created_at')
+        read_only_fields = ('course', 'student', 'created_at')

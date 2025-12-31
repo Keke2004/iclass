@@ -26,4 +26,15 @@ export interface Checkin {
   is_active: boolean;
   is_checked_in: boolean;
   records?: CheckinRecord[];
+  task_type: 'checkin';
 }
+
+export interface RandomQuestion {
+  id: number;
+  student: User;
+  created_at: string;
+  task_type: 'random_question';
+  is_active: boolean; // Add this to match the Task interface
+}
+
+export type Task = Checkin | RandomQuestion;

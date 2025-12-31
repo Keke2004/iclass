@@ -18,11 +18,14 @@ from .serializers import (
     AnnouncementSerializer, ChapterSerializer, ChapterWriteSerializer,
     LearningRecordSerializer
 )
-from .permissions import IsTeacherOrReadOnly
+from .permissions import IsTeacherOrReadOnly, IsCourseMember
 from checkin.models import Checkin, CheckinRecord
 from assignments.models import Assignment, Submission
 from exams.models import Exam, ExamSubmission
-from interaction.models import DiscussionTopic, DiscussionReply
+from interaction.models import DiscussionTopic, DiscussionReply, RandomQuestion
+from checkin.serializers import CheckinSerializer
+from interaction.serializers import RandomQuestionSerializer
+from itertools import chain
 
 class ChapterViewSet(viewsets.ModelViewSet):
     """
@@ -406,3 +409,38 @@ class LearningRecordView(APIView):
         # 注意：由于数据结构已更改，旧的 LearningRecordSerializer 可能不再适用
         # 我们直接返回字典列表，DRF 会自动处理 JSON 序列化
         return Response(learning_records)
+
+
+class TaskListView(APIView):
+    """
+    获取课程的统一任务列表，包括签到和随机提问。
+    """
+    permission_classes = [permissions.IsAuthenticated, IsCourseMember]
+
+    def get(self, request, course_id):
+        # 验证课程是否存在
+        course = get_object_or_404(Course, pk=course_id)
+
+        # 获取所有签到任务
+        checkins = Checkin.objects.filter(course=course)
+        checkin_data = CheckinSerializer(checkins, many=True, context={'request': request}).data
+        for item in checkin_data:
+            item['task_type'] = 'checkin'
+
+        # 获取所有随机提问任务
+        random_questions = RandomQuestion.objects.filter(course=course)
+        random_question_data = RandomQuestionSerializer(random_questions, many=True, context={'request': request}).data
+        for item in random_question_data:
+            item['task_type'] = 'random_question'
+            item['title'] = f"随机提问 - {item['student']['username']}"
+            item['start_time'] = item['created_at']
+            item['is_active'] = False  # 随机提问是即时完成的
+
+        # 合并并按开始时间降序排序
+        combined_tasks = sorted(
+            chain(checkin_data, random_question_data),
+            key=lambda x: x.get('start_time'),
+            reverse=True
+        )
+
+        return Response(combined_tasks)

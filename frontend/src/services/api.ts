@@ -103,5 +103,10 @@ export const studentCheckin = (courseId: number, checkinId: number) => apiClient
 export const proxyCheckin = (courseId: number, checkinId: number, studentId: number, status: string) => apiClient.post(`/courses/${courseId}/checkins/${checkinId}/proxy_checkin/`, { student_id: studentId, status: status });
 export const deleteCheckin = (courseId: number, checkinId: number) => apiClient.delete(`/courses/${courseId}/checkins/${checkinId}/`);
 
+// 任务相关 API
+export const getTasks = (courseId: number) => apiClient.get(`/courses/${courseId}/tasks/`);
+export const createRandomQuestion = (courseId: number) => apiClient.post(`/courses/${courseId}/random_questions/`);
+export const deleteRandomQuestion = (courseId: number, questionId: number) => apiClient.delete(`/courses/${courseId}/random_questions/${questionId}/`);
+
 
 export default apiClient;

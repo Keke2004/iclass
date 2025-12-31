@@ -1,38 +1,59 @@
 <template>
   <div class="task-manager">
     <div class="header">
-      <h1>签到任务</h1>
-      <el-button v-if="isTeacher" @click="showCreateCheckinDialog = true" type="primary">发起签到</el-button>
+      <h1>任务列表</h1>
+      <div v-if="isTeacher">
+        <el-button @click="showCreateCheckinDialog = true" type="primary">发起签到</el-button>
+        <el-button @click="handleCreateRandomQuestion" type="success">发起提问</el-button>
+      </div>
     </div>
 
-    <div v-if="checkins.length > 0">
-      <div class="checkin-section" v-if="ongoingCheckins.length > 0">
-        <h3 class="section-title">进行中 ({{ ongoingCheckins.length }})</h3>
-        <div class="checkin-list">
-          <div v-for="checkin in ongoingCheckins" :key="checkin.id" class="checkin-item" @click="goToCheckinDetail(checkin.id)">
-            <div class="checkin-icon-wrapper status-ongoing">
-              <div class="checkin-icon">签到</div>
+    <div v-if="tasks.length > 0">
+      <div class="task-section" v-if="ongoingTasks.length > 0">
+        <h3 class="section-title">进行中 ({{ ongoingTasks.length }})</h3>
+        <div class="task-list">
+          <div v-for="task in ongoingTasks" :key="task.task_type + '-' + task.id" class="task-item">
+            <div class="task-info" @click="handleTaskClick(task)">
+              <div :class="['task-icon-wrapper', getTaskStatusClass(task)]">
+                <div class="task-icon">{{ getTaskTypeName(task.task_type) }}</div>
+              </div>
+              <div class="task-title">{{ getTaskTitle(task) }}</div>
+              <div class="task-time">开始时间: {{ formatTime(task.start_time || task.created_at) }}</div>
             </div>
-            <div class="checkin-title">{{ checkin.title }}</div>
-            <div class="checkin-time">开始时间: {{ formatTime(checkin.start_time) }}</div>
+            <el-button
+                v-if="isTeacher && task.task_type === 'random_question'"
+                @click.stop="handleDeleteRandomQuestion(task)"
+                type="danger"
+                link
+                class="delete-btn"
+            >删除</el-button>
           </div>
         </div>
       </div>
 
-      <div class="checkin-section" v-if="endedCheckins.length > 0">
-        <h3 class="section-title">已结束 ({{ endedCheckins.length }})</h3>
-        <div class="checkin-list">
-          <div v-for="checkin in endedCheckins" :key="checkin.id" class="checkin-item" @click="goToCheckinDetail(checkin.id)">
-            <div class="checkin-icon-wrapper status-ended">
-              <div class="checkin-icon">签到</div>
+      <div class="task-section" v-if="endedTasks.length > 0">
+        <h3 class="section-title">已结束 ({{ endedTasks.length }})</h3>
+        <div class="task-list">
+          <div v-for="task in endedTasks" :key="task.task_type + '-' + task.id" class="task-item">
+            <div class="task-info" @click="handleTaskClick(task)">
+              <div :class="['task-icon-wrapper', getTaskStatusClass(task)]">
+                <div class="task-icon">{{ getTaskTypeName(task.task_type) }}</div>
+              </div>
+              <div class="task-title">{{ getTaskTitle(task) }}</div>
+              <div class="task-time">结束时间: {{ formatTime(task.end_time || task.created_at) }}</div>
             </div>
-            <div class="checkin-title">{{ checkin.title }}</div>
-            <div class="checkin-time">结束时间: {{ formatTime(checkin.end_time || checkin.start_time) }}</div>
+            <el-button
+                v-if="isTeacher && task.task_type === 'random_question'"
+                @click.stop="handleDeleteRandomQuestion(task)"
+                type="danger"
+                link
+                class="delete-btn"
+            >删除</el-button>
           </div>
         </div>
       </div>
     </div>
-    <el-empty v-else description="暂无签到任务"></el-empty>
+    <el-empty v-else description="暂无任务"></el-empty>
 
     <el-dialog title="发起签到" v-model="showCreateCheckinDialog" width="30%">
       <el-form :model="newCheckinForm">
@@ -53,15 +74,15 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getCheckins, createCheckin } from '@/services/api';
-import type { Checkin } from '@/types';
-import { ElMessage } from 'element-plus';
+import { getTasks, createCheckin, createRandomQuestion, deleteRandomQuestion } from '@/services/api';
+import type { Checkin, RandomQuestion, Task } from '@/types';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 const route = useRoute();
 const router = useRouter();
 const courseId = Number(route.params.id);
 
-const checkins = ref<Checkin[]>([]);
+const tasks = ref<Task[]>([]);
 const showCreateCheckinDialog = ref(false);
 const newCheckinForm = ref({
   title: '课堂签到',
@@ -70,16 +91,16 @@ const newCheckinForm = ref({
 const userRole = localStorage.getItem('user_role');
 const isTeacher = computed(() => userRole === 'teacher');
 
-const ongoingCheckins = computed(() => checkins.value.filter(c => c.is_active));
-const endedCheckins = computed(() => checkins.value.filter(c => !c.is_active));
+const ongoingTasks = computed(() => tasks.value.filter(t => t.is_active));
+const endedTasks = computed(() => tasks.value.filter(t => !t.is_active));
 
-const fetchCheckins = async () => {
+const fetchTasks = async () => {
   try {
-    const response = await getCheckins(courseId);
-    checkins.value = response.data;
+    const response = await getTasks(courseId);
+    tasks.value = response.data;
   } catch (error) {
-    console.error('Failed to fetch checkins:', error);
-    ElMessage.error('获取签到列表失败');
+    console.error('Failed to fetch tasks:', error);
+    ElMessage.error('获取任务列表失败');
   }
 };
 
@@ -88,23 +109,81 @@ const handleCreateCheckin = async () => {
     await createCheckin(courseId, { title: newCheckinForm.value.title });
     showCreateCheckinDialog.value = false;
     ElMessage.success('签到发起成功');
-    fetchCheckins(); // Refresh the list
+    fetchTasks(); // Refresh the list
   } catch (error) {
     console.error('Failed to create checkin:', error);
     ElMessage.error('发起签到失败');
   }
 };
 
-const goToCheckinDetail = (checkinId: number) => {
-  router.push({ name: 'checkin-detail', params: { id: courseId, checkinId } });
+const handleCreateRandomQuestion = async () => {
+  try {
+    const response = await createRandomQuestion(courseId);
+    const studentName = response.data.student.username;
+    ElMessageBox.alert(`已抽中学生: ${studentName}`, '提问成功', {
+      confirmButtonText: '好的',
+      type: 'success',
+    });
+    fetchTasks(); // Refresh the list
+  } catch (error) {
+    console.error('Failed to create random question:', error);
+    ElMessage.error('发起提问失败');
+  }
+};
+
+const handleDeleteRandomQuestion = async (task: Task) => {
+  try {
+    await ElMessageBox.confirm(
+        '确定要删除这个提问吗?',
+        '警告',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+    );
+    await deleteRandomQuestion(courseId, task.id);
+    ElMessage.success('提问删除成功');
+    fetchTasks(); // Refresh the list
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Failed to delete random question:', error);
+      ElMessage.error('删除提问失败');
+    }
+  }
+};
+
+const handleTaskClick = (task: Task) => {
+  if (task.task_type === 'checkin') {
+    router.push({ name: 'checkin-detail', params: { id: courseId, checkinId: task.id } });
+  }
+  // Random questions do not have a detail page, so do nothing.
 };
 
 const formatTime = (time: string) => {
   return new Date(time).toLocaleString();
 };
 
+const getTaskTypeName = (taskType: string) => {
+  return taskType === 'checkin' ? '签到' : '提问';
+};
+
+const getTaskTitle = (task: Task) => {
+  if (task.task_type === 'checkin') {
+    return (task as Checkin).title;
+  }
+  if (task.task_type === 'random_question') {
+    return `随机提问 - ${(task as RandomQuestion).student.username}`;
+  }
+  return '未知任务';
+};
+
+const getTaskStatusClass = (task: Task) => {
+  return task.is_active ? 'status-ongoing' : 'status-ended';
+};
+
 onMounted(() => {
-  fetchCheckins();
+  fetchTasks();
 });
 </script>
 
@@ -118,7 +197,7 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 20px;
 }
-.checkin-section {
+.task-section {
   margin-bottom: 30px;
 }
 .section-title {
@@ -127,25 +206,31 @@ onMounted(() => {
   color: #333;
   margin-bottom: 15px;
 }
-.checkin-list {
+.task-list {
   background-color: #fff;
   border: 1px solid #e8e8e8;
   border-radius: 4px;
 }
-.checkin-item {
+.task-item {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   padding: 15px;
-  cursor: pointer;
   transition: background-color 0.3s;
 }
-.checkin-item:not(:last-child) {
+.task-info {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  cursor: pointer;
+}
+.task-item:not(:last-child) {
   border-bottom: 1px solid #e8e8e8;
 }
-.checkin-item:hover {
+.task-item:hover {
   background-color: #f5f7fa;
 }
-.checkin-icon-wrapper {
+.task-icon-wrapper {
   width: 40px;
   height: 40px;
   border-radius: 4px;
@@ -155,7 +240,7 @@ onMounted(() => {
   margin-right: 15px;
   flex-shrink: 0;
 }
-.checkin-icon {
+.task-icon {
   color: #fff;
   font-size: 14px;
 }
@@ -165,14 +250,17 @@ onMounted(() => {
 .status-ended {
   background-color: #c0c4cc; /* Gray for ended */
 }
-.checkin-title {
+.task-title {
   flex-grow: 1;
   font-size: 16px;
   color: #333;
 }
-.checkin-time {
+.task-time {
   font-size: 14px;
   color: #999;
+  margin-left: 15px;
+}
+.delete-btn {
   margin-left: 15px;
 }
 </style>

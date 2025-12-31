@@ -33,6 +33,7 @@ class CheckinViewSet(viewsets.ModelViewSet):
     def end_checkin(self, request, pk=None, course_pk=None):
         checkin = self.get_object()
         checkin.is_active = False
+        checkin.end_time = timezone.now()
         checkin.save()
         return Response({'status': 'Check-in ended'}, status=status.HTTP_200_OK)
 

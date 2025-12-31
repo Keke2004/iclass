@@ -94,3 +94,15 @@ class DiscussionReply(models.Model):
 
     def __str__(self):
         return f'{self.author.username}: {self.content[:50]}'
+
+
+class RandomQuestion(models.Model):
+    """
+    随机提问模型
+    """
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='random_questions', verbose_name='所属课程')
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='randomly_questioned', verbose_name='被提问学生')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='提问时间')
+
+    def __str__(self):
+        return f'Random question in {self.course.name} for {self.student.username} at {self.created_at}'

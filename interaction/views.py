@@ -1,10 +1,13 @@
-from rest_framework import generics, permissions
+import random
+from rest_framework import generics, permissions, viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import DiscussionTopic, DiscussionReply
-from .serializers import DiscussionTopicSerializer, DiscussionReplySerializer
-from courses.permissions import IsCourseMember, IsAuthorOrTeacherOrReadOnly
+from .models import DiscussionTopic, DiscussionReply, RandomQuestion
+from .serializers import DiscussionTopicSerializer, DiscussionReplySerializer, RandomQuestionSerializer
+from courses.permissions import IsCourseMember, IsAuthorOrTeacherOrReadOnly, IsCourseTeacher
 from django.db.models import Q
+from courses.models import Course
+from django.shortcuts import get_object_or_404
 
 class DiscussionTopicListCreateView(generics.ListCreateAPIView):
     serializer_class = DiscussionTopicSerializer
@@ -65,3 +68,26 @@ class MyDiscussionsView(APIView):
             'my_topics': my_topics_serializer.data,
             'replied_topics': replied_topics_serializer.data
         })
+
+
+class RandomQuestionViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated, IsCourseTeacher]
+
+    def create(self, request, course_pk=None):
+        course = get_object_or_404(Course, pk=course_pk)
+
+        students = list(course.students.all())
+        if not students:
+            return Response({"error": "No students in this course"}, status=status.HTTP_400_BAD_REQUEST)
+
+        random_student = random.choice(students)
+
+        random_question = RandomQuestion.objects.create(course=course, student=random_student)
+        serializer = RandomQuestionSerializer(random_question, context={'request': request})
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, pk=None, course_pk=None):
+        random_question = get_object_or_404(RandomQuestion, pk=pk, course_id=course_pk)
+        random_question.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
