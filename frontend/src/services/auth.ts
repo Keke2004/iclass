@@ -15,3 +15,10 @@ export const getUserProfile = async (): Promise<User> => {
   const response = await apiClient.get('/users/profile/'); // 假设这是获取用户信息的端点
   return response.data;
 };
+
+import type { DirectPasswordResetPayload } from '../types';
+
+export const directPasswordReset = async (payload: DirectPasswordResetPayload) => {
+  const response = await apiClient.post('/auth/password/reset/direct/', payload);
+  return response.data;
+};

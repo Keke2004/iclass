@@ -38,3 +38,9 @@ export interface RandomQuestion {
 }
 
 export type Task = Checkin | RandomQuestion;
+
+export interface DirectPasswordResetPayload {
+  username: string;
+  new_password1: string;
+  new_password2: string;
+}

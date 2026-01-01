@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import AuthenticationFailed
+from django.utils.http import urlsafe_base64_decode
+from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth import get_user_model
 from .models import User
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -71,6 +74,33 @@ class PasswordChangeSerializer(serializers.Serializer):
 
     def save(self, **kwargs):
         user = self.context['request'].user
+        user.set_password(self.validated_data['new_password1'])
+        user.save()
+        return user
+
+
+class DirectPasswordResetSerializer(serializers.Serializer):
+    """
+    Serializer for resetting password directly with username.
+    """
+    username = serializers.CharField(max_length=150)
+    new_password1 = serializers.CharField(max_length=128)
+    new_password2 = serializers.CharField(max_length=128)
+
+    def validate_username(self, value):
+        User = get_user_model()
+        if not User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("该用户不存在")
+        return value
+
+    def validate(self, data):
+        if data['new_password1'] != data['new_password2']:
+            raise serializers.ValidationError("两次输入的新密码不一致")
+        return data
+
+    def save(self, **kwargs):
+        User = get_user_model()
+        user = User.objects.get(username=self.validated_data['username'])
         user.set_password(self.validated_data['new_password1'])
         user.save()
         return user

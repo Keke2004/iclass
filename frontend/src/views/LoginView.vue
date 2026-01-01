@@ -37,7 +37,8 @@
             登 录
           </el-button>
         </el-form-item>
-        <div class="register-link">
+        <div class="extra-links">
+          <el-link type="primary" @click="$router.push('/forgot-password')">忘记密码？</el-link>
           <el-link type="primary" @click="$router.push('/register')">没有账户？立即注册</el-link>
         </div>
       </el-form>
@@ -157,8 +158,9 @@ const handleLogin = async () => {
   justify-content: space-around;
 }
 
-.register-link {
-  text-align: center;
+.extra-links {
+  display: flex;
+  justify-content: space-between;
   margin-top: 10px;
 }
 </style>

@@ -112,6 +112,7 @@ import { ref, onMounted, reactive } from 'vue';
 import { View, Hide } from '@element-plus/icons-vue';
 import { getProfile, updateProfile } from '@/services/api';
 import apiClient from '@/services/api';
+import { ElMessage } from 'element-plus';
 
 const activeTab = ref('basic');
 const user = ref<any>(null);
@@ -162,21 +163,21 @@ const updateUserInfo = async () => {
   try {
     const response = await updateProfile(editableUser);
     user.value = response.data;
-    alert('用户信息更新成功！');
+    ElMessage.success('用户信息更新成功！');
   } catch (error) {
     console.error('更新用户信息失败:', error);
-    alert('更新用户信息失败，请稍后重试。');
+    ElMessage.error('更新用户信息失败，请稍后重试。');
   }
 };
 
 const changePassword = async () => {
   if (passwordData.new_password1 !== passwordData.new_password2) {
-    alert('新密码和确认密码不匹配！');
+    ElMessage.error('新密码和确认密码不匹配！');
     return;
   }
   try {
     await apiClient.post('/auth/password/change/', passwordData);
-    alert('密码修改成功！');
+    ElMessage.success('密码修改成功！');
     Object.assign(passwordData, {
       old_password: '',
       new_password1: '',
@@ -184,7 +185,7 @@ const changePassword = async () => {
     });
   } catch (error) {
     console.error('修改密码失败:', error);
-    alert('修改密码失败，请检查当前密码是否正确。');
+    ElMessage.error('修改密码失败，请检查当前密码是否正确。');
   }
 };
 </script>

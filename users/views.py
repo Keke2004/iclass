@@ -5,7 +5,15 @@ from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import UserSerializer, MyTokenObtainPairSerializer, PasswordChangeSerializer
+from django.core.mail import send_mail
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth import get_user_model
+from .serializers import (
+    UserSerializer, MyTokenObtainPairSerializer, PasswordChangeSerializer,
+    DirectPasswordResetSerializer
+)
 from .models import User
 from .permissions import IsAdminRole
 from .filters import UserFilter
@@ -108,3 +116,17 @@ class UserStatisticsView(APIView):
         data = {item['role']: item['count'] for item in role_counts}
         
         return Response(data, status=status.HTTP_200_OK)
+
+
+class DirectPasswordResetView(generics.GenericAPIView):
+    """
+    View to reset password directly with username.
+    """
+    serializer_class = DirectPasswordResetSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "密码已成功重置"}, status=status.HTTP_200_OK)
