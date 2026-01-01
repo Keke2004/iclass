@@ -11,8 +11,8 @@
     *   **API:** Django REST Framework (用于前后端分离)
     *   **实时通信:** Django Channels (用于实现WebSocket课堂互动)
     *   **认证:** Django内置认证 + djangorestframework-simplejwt (用于JWT令牌)
-*   **前端:** (建议)
-    *   **框架:** Vue.js 或 React (用于构建单页面应用)
+*   **前端:**
+    *   **框架:** Vue.js
     *   **UI库:** Element Plus 或 Ant Design Vue
     *   **图表:** ECharts 或 Chart.js
 *   **数据库:** PostgreSQL / MySQL
@@ -48,7 +48,6 @@
 ### 3.3 后台管理端
 
 *   **用户与权限管理:** 管理教师、学生、管理员三类角色的账户和权限。
-*   **系统管理:** 配置系统参数，例如学期设置。
 *   **数据统计与分析:**
     *   可视化展示全校/课程的教学数据（如出勤率、作业完成率、课堂活跃度）。
     *   支持数据导出。

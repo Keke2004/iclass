@@ -68,15 +68,26 @@
         </span>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="showPicker" title="正在抽取幸运学生..." width="500px" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
+      <RandomQuestionPicker
+        v-if="showPicker"
+        :students="allStudents"
+        :selected-student="selectedStudent!"
+        @finished="handlePickerFinished"
+      />
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getTasks, createCheckin, createRandomQuestion, deleteRandomQuestion } from '@/services/api';
-import type { Checkin, RandomQuestion, Task } from '@/types';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { getTasks, createCheckin, createRandomQuestion, deleteRandomQuestion, getCourseMembers } from '@/services/api';
+import type { Checkin, RandomQuestion, Task, User } from '@/types';
+import { ElMessage, ElMessageBox, ElDialog } from 'element-plus';
+import RandomQuestionPicker from '@/components/RandomQuestionPicker.vue';
+import apiClient from '@/services/api';
 
 const route = useRoute();
 const router = useRouter();
@@ -87,6 +98,10 @@ const showCreateCheckinDialog = ref(false);
 const newCheckinForm = ref({
   title: '课堂签到',
 });
+
+const showPicker = ref(false);
+const allStudents = ref<User[]>([]);
+const selectedStudent = ref<User | null>(null);
 
 const userRole = localStorage.getItem('user_role');
 const isTeacher = computed(() => userRole === 'teacher');
@@ -118,17 +133,32 @@ const handleCreateCheckin = async () => {
 
 const handleCreateRandomQuestion = async () => {
   try {
-    const response = await createRandomQuestion(courseId);
-    const studentName = response.data.student.username;
-    ElMessageBox.alert(`已抽中学生: ${studentName}`, '提问成功', {
-      confirmButtonText: '好的',
-      type: 'success',
-    });
-    fetchTasks(); // Refresh the list
+    // 1. Fetch all students in the course
+    const membersResponse = await apiClient.get(`/courses/${courseId}/`);
+    allStudents.value = membersResponse.data.students;
+
+    if (allStudents.value.length === 0) {
+      ElMessage.warning('该课程暂无学生，无法发起提问');
+      return;
+    }
+
+    // 2. Create a random question to get the selected student
+    const questionResponse = await createRandomQuestion(courseId);
+    selectedStudent.value = questionResponse.data.student;
+
+    // 3. Show the picker dialog
+    showPicker.value = true;
+
   } catch (error) {
     console.error('Failed to create random question:', error);
     ElMessage.error('发起提问失败');
   }
+};
+
+const handlePickerFinished = () => {
+  showPicker.value = false;
+  ElMessage.success(`已成功抽中学生: ${selectedStudent.value?.username}`);
+  fetchTasks(); // Refresh the list after animation
 };
 
 const handleDeleteRandomQuestion = async (task: Task) => {
