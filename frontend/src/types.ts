@@ -37,7 +37,27 @@ export interface RandomQuestion {
   is_active: boolean; // Add this to match the Task interface
 }
 
-export type Task = Checkin | RandomQuestion;
+export interface VoteChoice {
+  id: number;
+  text: string;
+  response_count: number;
+  voters?: User[];
+}
+
+export interface Vote {
+  id: number;
+  title: string;
+  course: number;
+  creator: number;
+  created_at: string;
+  is_active: boolean;
+  choices: VoteChoice[];
+  user_has_voted: boolean;
+  total_votes: number;
+  task_type: 'vote';
+}
+
+export type Task = Checkin | RandomQuestion | Vote;
 
 export interface DirectPasswordResetPayload {
   username: string;

@@ -172,7 +172,7 @@ const filteredAssignments = computed(() => {
         return statusInfo.key === 'graded' || statusInfo.key === 'submitted';
       }
       if (activeTab.value === 'pending') {
-        return statusInfo.key === 'pending' || statusInfo.key === 'missed';
+        return statusInfo.key === 'pending';
       }
       return false;
     });
@@ -240,7 +240,7 @@ const formatDate = (dateString: string) => {
 };
 
 const goToDetail = (assignmentId: number) => {
-  router.push({ name: 'AssignmentDetail', params: { id: assignmentId } });
+  router.push({ name: 'assignment-detail', params: { id: assignmentId } });
 };
 
 const isTeacher = computed(() => userRole === 'teacher');

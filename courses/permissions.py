@@ -6,7 +6,7 @@ class IsCourseMember(permissions.BasePermission):
     Custom permission to only allow members of a course to view it.
     """
     def has_permission(self, request, view):
-        course_id = view.kwargs.get('course_id') or view.kwargs.get('pk')
+        course_id = view.kwargs.get('course_pk') or view.kwargs.get('course_id') or view.kwargs.get('pk')
         if not course_id:
             return False
         

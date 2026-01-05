@@ -108,5 +108,13 @@ export const getTasks = (courseId: number) => apiClient.get(`/courses/${courseId
 export const createRandomQuestion = (courseId: number) => apiClient.post(`/courses/${courseId}/random_questions/`);
 export const deleteRandomQuestion = (courseId: number, questionId: number) => apiClient.delete(`/courses/${courseId}/random_questions/${questionId}/`);
 
+// 投票相关 API
+export const getVotes = (courseId: number) => apiClient.get(`/courses/${courseId}/votes/`);
+export const createVote = (courseId: number, data: { title: string; choices_create: { text: string }[] }) => apiClient.post(`/courses/${courseId}/votes/`, data);
+export const getVoteDetail = (courseId: number, voteId: number) => apiClient.get(`/courses/${courseId}/votes/${voteId}/`);
+export const endVote = (courseId: number, voteId: number) => apiClient.patch(`/courses/${courseId}/votes/${voteId}/`, { is_active: false });
+export const deleteVote = (courseId: number, voteId: number) => apiClient.delete(`/courses/${courseId}/votes/${voteId}/`);
+export const submitVote = (courseId: number, voteId: number, choiceId: number) => apiClient.post(`/courses/${courseId}/votes/${voteId}/vote/`, { choice_id: choiceId });
+
 
 export default apiClient;

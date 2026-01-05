@@ -1,13 +1,15 @@
 import random
 from rest_framework import generics, permissions, viewsets, status
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import DiscussionTopic, DiscussionReply, RandomQuestion
-from .serializers import DiscussionTopicSerializer, DiscussionReplySerializer, RandomQuestionSerializer
+from .models import DiscussionTopic, DiscussionReply, RandomQuestion, Vote, VoteChoice, VoteResponse
+from .serializers import DiscussionTopicSerializer, DiscussionReplySerializer, RandomQuestionSerializer, VoteSerializer, VoteResponseSerializer
 from courses.permissions import IsCourseMember, IsAuthorOrTeacherOrReadOnly, IsCourseTeacher
 from django.db.models import Q
 from courses.models import Course
 from django.shortcuts import get_object_or_404
+from django.db import IntegrityError
 
 class DiscussionTopicListCreateView(generics.ListCreateAPIView):
     serializer_class = DiscussionTopicSerializer
@@ -91,3 +93,51 @@ class RandomQuestionViewSet(viewsets.ViewSet):
         random_question = get_object_or_404(RandomQuestion, pk=pk, course_id=course_pk)
         random_question.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class VoteViewSet(viewsets.ModelViewSet):
+    serializer_class = VoteSerializer
+    permission_classes = [permissions.IsAuthenticated, IsCourseMember]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update({"request": self.request})
+        return context
+
+    def get_queryset(self):
+        course_id = self.kwargs['course_pk']
+        return Vote.objects.filter(course_id=course_id).order_by('-created_at')
+
+    def get_permissions(self):
+        if self.action in ['create', 'destroy', 'update', 'partial_update']:
+            self.permission_classes = [permissions.IsAuthenticated, IsCourseTeacher]
+        else:
+            self.permission_classes = [permissions.IsAuthenticated, IsCourseMember]
+        return super().get_permissions()
+
+    def perform_create(self, serializer):
+        course = get_object_or_404(Course, pk=self.kwargs['course_pk'])
+        serializer.save(course=course)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated, IsCourseMember])
+    def vote(self, request, pk=None, course_pk=None):
+        vote = self.get_object()
+        choice_id = request.data.get('choice_id')
+
+        if not choice_id:
+            return Response({'error': 'Choice ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            choice = VoteChoice.objects.get(id=choice_id, vote=vote)
+        except VoteChoice.DoesNotExist:
+            return Response({'error': 'Invalid choice.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        student = request.user
+
+        try:
+            # The unique_together constraint on ('vote', 'student') will prevent multiple votes.
+            response = VoteResponse.objects.create(vote=vote, choice=choice, student=student)
+            serializer = VoteResponseSerializer(response)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except IntegrityError:
+            return Response({'error': 'You have already voted in this poll.'}, status=status.HTTP_400_BAD_REQUEST)

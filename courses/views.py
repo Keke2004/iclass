@@ -22,9 +22,9 @@ from .permissions import IsTeacherOrReadOnly, IsCourseMember
 from checkin.models import Checkin, CheckinRecord
 from assignments.models import Assignment, Submission
 from exams.models import Exam, ExamSubmission
-from interaction.models import DiscussionTopic, DiscussionReply, RandomQuestion
+from interaction.models import DiscussionTopic, DiscussionReply, RandomQuestion, Vote
 from checkin.serializers import CheckinSerializer
-from interaction.serializers import RandomQuestionSerializer
+from interaction.serializers import RandomQuestionSerializer, VoteSerializer
 from itertools import chain
 
 class ChapterViewSet(viewsets.ModelViewSet):
@@ -413,7 +413,7 @@ class LearningRecordView(APIView):
 
 class TaskListView(APIView):
     """
-    获取课程的统一任务列表，包括签到和随机提问。
+    获取课程的统一任务列表，包括签到、随机提问和投票。
     """
     permission_classes = [permissions.IsAuthenticated, IsCourseMember]
 
@@ -436,9 +436,14 @@ class TaskListView(APIView):
             item['start_time'] = item['created_at']
             item['is_active'] = False  # 随机提问是即时完成的
 
+        # 获取所有投票任务
+        votes = Vote.objects.filter(course=course)
+        vote_data = VoteSerializer(votes, many=True, context={'request': request}).data
+        # 'task_type' 已经在 VoteSerializer 中设置了
+
         # 合并并按开始时间降序排序
         combined_tasks = sorted(
-            chain(checkin_data, random_question_data),
+            chain(checkin_data, random_question_data, vote_data),
             key=lambda x: x.get('start_time'),
             reverse=True
         )

@@ -32,6 +32,7 @@ class Vote(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='votes', verbose_name='所属课程')
     title = models.CharField(max_length=255, verbose_name='投票标题')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    is_active = models.BooleanField(default=True, verbose_name='是否激活')
 
     def __str__(self):
         return self.title
@@ -50,12 +51,13 @@ class VoteResponse(models.Model):
     """
     学生投票响应模型
     """
+    vote = models.ForeignKey(Vote, on_delete=models.CASCADE, related_name='responses', null=True)
     choice = models.ForeignKey(VoteChoice, on_delete=models.CASCADE, related_name='responses', verbose_name='所选选项')
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='vote_responses', verbose_name='投票学生')
     voted_at = models.DateTimeField(auto_now_add=True, verbose_name='投票时间')
 
     class Meta:
-        unique_together = ('choice', 'student')
+        unique_together = ('vote', 'student')
 
 class Discussion(models.Model):
     """

@@ -28,24 +28,32 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data
 
 class UserSerializer(serializers.ModelSerializer):
+    def __init__(self, *args, **kwargs):
+        super(UserSerializer, self).__init__(*args, **kwargs)
+        # For 'update' operations, make 'username' read-only.
+        if self.instance:
+            self.fields['username'].read_only = True
+
     class Meta:
         model = User
         fields = ['id', 'username', 'password', 'email', 'role', 'gender', 'phone_number', 'school', 'student_id', 'first_name']
         extra_kwargs = {
             'password': {'write_only': True, 'required': False},
-            'username': {'read_only': True}
         }
 
     def create(self, validated_data):
-        # 使用create_user来正确处理密码哈希
+        # Use create_user to correctly handle password hashing and set other fields
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data.get('email', ''),
-            password=validated_data['password']
+            password=validated_data['password'],
+            role=validated_data.get('role', 'student'),
+            gender=validated_data.get('gender'),
+            phone_number=validated_data.get('phone_number'),
+            school=validated_data.get('school'),
+            student_id=validated_data.get('student_id'),
+            first_name=validated_data.get('first_name')
         )
-        # 单独设置自定义的role字段
-        user.role = validated_data.get('role', 'student')
-        user.save()
         return user
 
 class BasicUserSerializer(serializers.ModelSerializer):

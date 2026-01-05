@@ -12,11 +12,15 @@ class CheckinRecordSerializer(serializers.ModelSerializer):
 class CheckinSerializer(serializers.ModelSerializer):
     records = CheckinRecordSerializer(many=True, read_only=True)
     is_checked_in = serializers.SerializerMethodField()
+    task_type = serializers.SerializerMethodField()
 
     class Meta:
         model = Checkin
-        fields = ('id', 'title', 'start_time', 'end_time', 'is_active', 'records', 'is_checked_in', 'course')
+        fields = ('id', 'title', 'start_time', 'end_time', 'is_active', 'records', 'is_checked_in', 'course', 'task_type')
         read_only_fields = ('start_time', 'is_active', 'records', 'course')
+
+    def get_task_type(self, obj):
+        return 'checkin'
 
     def get_is_checked_in(self, obj):
         """

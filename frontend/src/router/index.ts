@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
@@ -8,11 +9,6 @@ import Layout from '../components/Layout.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-      {
-        path: '/assignments/:id',
-        name: 'AssignmentDetail',
-        component: () => import('../views/common/AssignmentDetail.vue')
-      },
       {
         path: '/assignments/new',
         name: 'AssignmentCreate',
@@ -107,6 +103,13 @@ const router = createRouter({
           name: 'course-detail',
           component: () => import('../views/common/CourseDetail.vue'),
           redirect: to => ({ name: 'course-tasks', params: { id: to.params.id } }),
+          async beforeEnter(to, from, next) {
+            const userStore = useUserStore();
+            if (!userStore.isAuthenticated) {
+              await userStore.fetchUser();
+            }
+            next();
+          },
           children: [
             {
               path: 'tasks',
@@ -117,6 +120,12 @@ const router = createRouter({
               path: 'tasks/:checkinId',
               name: 'checkin-detail',
               component: () => import('@/views/common/CheckinDetail.vue'),
+              props: true
+            },
+            {
+              path: 'votes/:voteId',
+              name: 'vote-detail',
+              component: () => import('@/views/common/VoteDetail.vue'),
               props: true
             },
             {
