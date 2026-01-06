@@ -106,7 +106,8 @@ export const deleteCheckin = (courseId: number, checkinId: number) => apiClient.
 // 任务相关 API
 export const getTasks = (courseId: number) => apiClient.get(`/courses/${courseId}/tasks/`);
 export const createRandomQuestion = (courseId: number) => apiClient.post(`/courses/${courseId}/random_questions/`);
-export const deleteRandomQuestion = (courseId: number, questionId: number) => apiClient.delete(`/courses/${courseId}/random_questions/${questionId}/`);
+export const getRandomQuestionDetail = (courseId: number, questionId: number) => apiClient.get(`/courses/${courseId}/random-questions/${questionId}/`);
+export const deleteRandomQuestion = (courseId: number, questionId: number) => apiClient.delete(`/courses/${courseId}/random-questions/${questionId}/`);
 
 // 投票相关 API
 export const getVotes = (courseId: number) => apiClient.get(`/courses/${courseId}/votes/`);

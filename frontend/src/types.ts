@@ -31,6 +31,7 @@ export interface Checkin {
 
 export interface RandomQuestion {
   id: number;
+  course: number;
   student: User;
   created_at: string;
   task_type: 'random_question';

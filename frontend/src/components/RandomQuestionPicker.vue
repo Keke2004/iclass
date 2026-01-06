@@ -17,7 +17,7 @@ import type { User } from '@/types';
 
 const props = defineProps<{
   students: User[];
-  selectedStudent: User;
+  selectedStudent: User | null;
 }>();
 
 const emit = defineEmits(['finished']);
@@ -43,7 +43,9 @@ const startAnimation = () => {
 
   finishTimeout = window.setTimeout(() => {
     clearInterval(pickerInterval);
-    currentStudentName.value = props.selectedStudent.username;
+    if (props.selectedStudent) {
+      currentStudentName.value = props.selectedStudent.username;
+    }
     animationFinished.value = true;
     setTimeout(() => emit('finished'), 2000); // Wait 2 seconds before closing
   }, 5000); // Stop after 5 seconds

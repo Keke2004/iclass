@@ -45,21 +45,21 @@ const router = createRouter({
         component: () => import('../views/common/ExamDetail.vue'),
         meta: { requiresAuth: true, roles: ['student', 'teacher'] }
       },
-    {
-      path: '/login',
-      name: 'login',
-      component: LoginView
-    },
-    {
-      path: '/register',
-      name: 'register',
-      component: RegisterView
-    },
-    {
-      path: '/forgot-password',
-      name: 'forgot-password',
-      component: ForgotPassword
-    },
+      {
+        path: '/login',
+        name: 'login',
+        component: LoginView
+      },
+      {
+        path: '/register',
+        name: 'register',
+        component: RegisterView
+      },
+      {
+        path: '/forgot-password',
+        name: 'forgot-password',
+        component: ForgotPassword
+      },
     {
       path: '/',
       component: Layout,
@@ -127,6 +127,16 @@ const router = createRouter({
               name: 'vote-detail',
               component: () => import('@/views/common/VoteDetail.vue'),
               props: true
+            },
+            {
+              path: 'question/:taskId',
+              name: 'QuestionDetail',
+              component: () => import('../views/common/QuestionDetail.vue')
+            },
+            {
+              path: 'tasks/:taskId/random-question',
+              name: 'RandomQuestionDetail',
+              component: () => import('@/views/common/RandomQuestionDetail.vue')
             },
             {
               path: 'discussions',
@@ -204,12 +214,25 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
+  const userStore = useUserStore();
   const accessToken = localStorage.getItem('access_token');
-  const userRole = localStorage.getItem('user_role');
 
-  // 1. 已登录用户访问登录/注册页 -> 重定向到主页
-  if (accessToken && userRole && (to.name === 'login' || to.name === 'register')) {
+  // 1. 如果 store 中没有用户信息但存在 token，则先获取用户信息
+  if (accessToken && !userStore.user) {
+    try {
+      await userStore.fetchUser();
+    } catch (error) {
+      // 获取用户信息失败（例如 token 失效），清除 token 并重定向到登录页
+      userStore.logout();
+      return next('/login');
+    }
+  }
+
+  const userRole = userStore.user?.role;
+
+  // 2. 已登录用户访问登录/注册页 -> 重定向到主页
+  if (userStore.isAuthenticated && (to.name === 'login' || to.name === 'register')) {
     switch (userRole) {
       case 'student':
         return next('/student/courses');
@@ -218,17 +241,19 @@ router.beforeEach((to, from, next) => {
       case 'admin':
         return next('/admin/users');
       default:
-        // 角色丢失或异常，登出
-        localStorage.clear();
+        userStore.logout();
         return next('/login');
     }
   }
 
-  // 2. 访问需要认证的路由
+  // 3. 访问需要认证的路由
   if (to.matched.some((record) => record.meta.requiresAuth)) {
-    if (!accessToken || !userRole) {
+    if (!userStore.isAuthenticated) {
       // 未登录 -> 重定向到登录页
-      return next('/login');
+      return next({
+        path: '/login',
+        query: { redirect: to.fullPath }
+      });
     } else {
       // 已登录，但访问的是根路径或旧的dashboard -> 根据角色重定向
       const oldDashboardPaths = ['/', '/dashboard', '/student/dashboard', '/teacher/dashboard', '/admin/dashboard'];
@@ -241,7 +266,7 @@ router.beforeEach((to, from, next) => {
           case 'admin':
             return next('/admin/users');
           default:
-            localStorage.clear();
+            userStore.logout();
             return next('/login');
         }
       }
@@ -250,7 +275,7 @@ router.beforeEach((to, from, next) => {
     }
   }
 
-  // 3. 访问公共路由 -> 放行
+  // 4. 访问公共路由 -> 放行
   next();
 });
 

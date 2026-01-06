@@ -102,9 +102,16 @@ class RandomQuestion(models.Model):
     """
     随机提问模型
     """
+    STATUS_CHOICES = (
+        ('ongoing', '进行中'),
+        ('finished', '已结束'),
+    )
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='random_questions', verbose_name='所属课程')
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='randomly_questioned', verbose_name='被提问学生')
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='randomly_questioned', verbose_name='被提问学生', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='提问时间')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='ongoing', verbose_name='状态')
 
     def __str__(self):
-        return f'Random question in {self.course.name} for {self.student.username} at {self.created_at}'
+        if self.student:
+            return f'Random question in {self.course.name} for {self.student.username} at {self.created_at}'
+        return f'Random question in {self.course.name} at {self.created_at}'

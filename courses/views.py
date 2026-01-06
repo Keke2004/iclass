@@ -432,9 +432,12 @@ class TaskListView(APIView):
         random_question_data = RandomQuestionSerializer(random_questions, many=True, context={'request': request}).data
         for item in random_question_data:
             item['task_type'] = 'random_question'
-            item['title'] = f"随机提问 - {item['student']['username']}"
+            if item.get('student'):
+                item['title'] = f"随机提问 - {item['student']['username']}"
+            else:
+                item['title'] = "随机提问 - 待抽选"
             item['start_time'] = item['created_at']
-            item['is_active'] = False  # 随机提问是即时完成的
+            item['is_active'] = item['status'] == 'ongoing'
 
         # 获取所有投票任务
         votes = Vote.objects.filter(course=course)

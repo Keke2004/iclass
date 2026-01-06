@@ -116,8 +116,16 @@ class RandomQuestionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RandomQuestion
-        fields = ('id', 'course', 'student', 'created_at', 'task_type', 'start_time')
+        fields = ('id', 'course', 'student', 'created_at', 'task_type', 'start_time', 'status')
         read_only_fields = ('course', 'student', 'created_at')
 
     def get_task_type(self, obj):
         return 'random_question'
+
+
+class RandomQuestionDetailSerializer(serializers.ModelSerializer):
+    student = UserSerializer(read_only=True)
+
+    class Meta:
+        model = RandomQuestion
+        fields = ['id', 'course', 'student', 'created_at', 'status']

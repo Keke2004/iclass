@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import DiscussionTopic, DiscussionReply, RandomQuestion, Vote, VoteChoice, VoteResponse
-from .serializers import DiscussionTopicSerializer, DiscussionReplySerializer, RandomQuestionSerializer, VoteSerializer, VoteResponseSerializer
+from .serializers import DiscussionTopicSerializer, DiscussionReplySerializer, RandomQuestionSerializer, VoteSerializer, VoteResponseSerializer, RandomQuestionDetailSerializer
 from courses.permissions import IsCourseMember, IsAuthorOrTeacherOrReadOnly, IsCourseTeacher
 from django.db.models import Q
 from courses.models import Course
@@ -72,22 +72,49 @@ class MyDiscussionsView(APIView):
         })
 
 
+class RandomQuestionDetailView(generics.RetrieveDestroyAPIView):
+    queryset = RandomQuestion.objects.all()
+    serializer_class = RandomQuestionDetailSerializer
+    permission_classes = [permissions.IsAuthenticated, IsCourseMember]
+
+    def get_object(self):
+        queryset = self.get_queryset()
+        obj = get_object_or_404(
+            queryset,
+            course_id=self.kwargs['course_pk'],
+            pk=self.kwargs['question_pk']
+        )
+        self.check_object_permissions(self.request, obj.course)
+        return obj
+
 class RandomQuestionViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated, IsCourseTeacher]
 
     def create(self, request, course_pk=None):
         course = get_object_or_404(Course, pk=course_pk)
+        # Create a new random question instance without a student
+        random_question = RandomQuestion.objects.create(course=course, status='ongoing')
+        serializer = RandomQuestionSerializer(random_question, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated, IsCourseTeacher])
+    def draw(self, request, pk=None, course_pk=None):
+        random_question = get_object_or_404(RandomQuestion, pk=pk, course_id=course_pk)
+        if random_question.status == 'finished':
+            return Response({"error": "This random question has already been finished."}, status=status.HTTP_400_BAD_REQUEST)
+
+        course = random_question.course
         students = list(course.students.all())
         if not students:
-            return Response({"error": "No students in this course"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "No students in this course to draw from."}, status=status.HTTP_400_BAD_REQUEST)
 
         random_student = random.choice(students)
+        random_question.student = random_student
+        random_question.status = 'finished'
+        random_question.save()
 
-        random_question = RandomQuestion.objects.create(course=course, student=random_student)
-        serializer = RandomQuestionSerializer(random_question, context={'request': request})
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        serializer = RandomQuestionDetailSerializer(random_question)
+        return Response(serializer.data)
 
     def destroy(self, request, pk=None, course_pk=None):
         random_question = get_object_or_404(RandomQuestion, pk=pk, course_id=course_pk)

@@ -75,8 +75,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/user';
 import {
   ArrowDown,
   Management,
@@ -87,10 +88,11 @@ import {
 } from '@element-plus/icons-vue';
 
 const router = useRouter();
+const userStore = useUserStore();
 
-// 从localStorage获取用户信息
-const userRole = ref(localStorage.getItem('user_role'));
-const username = ref(localStorage.getItem('username') || '用户');
+// 从 Pinia store 获取用户信息
+const userRole = computed(() => userStore.user?.role);
+const username = computed(() => userStore.user?.username || '用户');
 
 // 根据角色计算首页路径
 const homePath = computed(() => {
@@ -109,15 +111,9 @@ const homePath = computed(() => {
 // 处理下拉菜单命令
 const handleCommand = (command: string | number | object) => {
   if (command === 'logout') {
-    // 清除所有登录信息
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user_role');
-    localStorage.removeItem('username'); // 如果有保存用户名
-    // 跳转到登录页
-    router.push('/login');
+    userStore.logout();
   } else if (command === 'profile') {
-    // 跳转到个人中心页，路径待定
+    // 跳转到个人中心页
     router.push('/profile');
   }
 };

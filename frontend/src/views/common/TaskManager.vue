@@ -21,13 +21,6 @@
               <div class="task-title">{{ getTaskTitle(task) }}</div>
               <div class="task-time">开始时间: {{ formatTime(task.start_time || task.created_at) }}</div>
             </div>
-            <el-button
-                v-if="isTeacher && task.task_type === 'random_question'"
-                @click.stop="handleDeleteTask(task)"
-                type="danger"
-                link
-                class="delete-btn"
-            >删除</el-button>
           </div>
         </div>
       </div>
@@ -43,20 +36,6 @@
               <div class="task-title">{{ getTaskTitle(task) }}</div>
               <div class="task-time">结束时间: {{ formatTime(task.end_time || task.created_at) }}</div>
             </div>
-            <el-button
-                v-if="isTeacher && task.task_type === 'random_question'"
-                @click.stop="handleDeleteTask(task)"
-                type="danger"
-                link
-                class="delete-btn"
-            >删除</el-button>
-            <el-button
-                v-if="isTeacher && task.task_type === 'random_question'"
-                @click.stop="handleDeleteTask(task)"
-                type="danger"
-                link
-                class="delete-btn"
-            >删除</el-button>
           </div>
         </div>
       </div>
@@ -101,25 +80,15 @@
         </span>
       </template>
     </el-dialog>
-
-    <el-dialog v-model="showPicker" title="正在抽取幸运学生..." width="500px" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
-      <RandomQuestionPicker
-        v-if="showPicker"
-        :students="allStudents"
-        :selected-student="selectedStudent!"
-        @finished="handlePickerFinished"
-      />
-    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getTasks, createCheckin, createRandomQuestion, deleteRandomQuestion, getCourseMembers, createVote } from '@/services/api';
+import { getTasks, createCheckin, createRandomQuestion, deleteRandomQuestion, createVote } from '@/services/api';
 import type { Checkin, RandomQuestion, Task, User, Vote } from '@/types';
 import { ElMessage, ElMessageBox, ElDialog } from 'element-plus';
-import RandomQuestionPicker from '@/components/RandomQuestionPicker.vue';
 import apiClient from '@/services/api';
 
 const route = useRoute();
@@ -137,10 +106,6 @@ const newVoteForm = ref({
   title: '',
   choices: [{ text: '' }, { text: '' }],
 });
-
-const showPicker = ref(false);
-const allStudents = ref<User[]>([]);
-const selectedStudent = ref<User | null>(null);
 
 const userRole = localStorage.getItem('user_role');
 const isTeacher = computed(() => userRole === 'teacher');
@@ -172,32 +137,15 @@ const handleCreateCheckin = async () => {
 
 const handleCreateRandomQuestion = async () => {
   try {
-    // 1. Fetch all students in the course
-    const membersResponse = await apiClient.get(`/courses/${courseId}/`);
-    allStudents.value = membersResponse.data.students;
-
-    if (allStudents.value.length === 0) {
-      ElMessage.warning('该课程暂无学生，无法发起提问');
-      return;
-    }
-
-    // 2. Create a random question to get the selected student
-    const questionResponse = await createRandomQuestion(courseId);
-    selectedStudent.value = questionResponse.data.student;
-
-    // 3. Show the picker dialog
-    showPicker.value = true;
-
+    const response = await createRandomQuestion(courseId);
+    const newQuestion = response.data;
+    ElMessage.success('发起提问成功');
+    router.push({ name: 'RandomQuestionDetail', params: { id: courseId, taskId: newQuestion.id } });
+    fetchTasks(); // Refresh the list
   } catch (error) {
     console.error('Failed to create random question:', error);
     ElMessage.error('发起提问失败');
   }
-};
-
-const handlePickerFinished = () => {
-  showPicker.value = false;
-  ElMessage.success(`已成功抽中学生: ${selectedStudent.value?.username}`);
-  fetchTasks(); // Refresh the list after animation
 };
 
 const addVoteOption = () => {
@@ -250,11 +198,6 @@ const handleDeleteTask = async (task: Task) => {
 
     if (task.task_type === 'random_question') {
       await deleteRandomQuestion(courseId, task.id);
-    } else if (task.task_type === 'vote') {
-      // The deleteVote function needs to be imported from api.ts
-      // Assuming it is: await deleteVote(courseId, task.id);
-      // Since we are removing the button, we can remove this logic too.
-      // For now, I will just remove the vote part from the condition.
     }
 
     ElMessage.success(`${taskTypeName}删除成功`);
@@ -272,8 +215,9 @@ const handleTaskClick = (task: Task) => {
     router.push({ name: 'checkin-detail', params: { id: courseId, checkinId: task.id } });
   } else if (task.task_type === 'vote') {
     router.push({ name: 'vote-detail', params: { id: courseId, voteId: task.id } });
+  } else if (task.task_type === 'random_question') {
+    router.push({ name: 'RandomQuestionDetail', params: { id: courseId, taskId: task.id } });
   }
-  // Random questions do not have a detail page, so do nothing.
 };
 
 const formatTime = (time: string) => {
@@ -298,7 +242,11 @@ const getTaskTitle = (task: Task) => {
     case 'checkin':
       return (task as Checkin).title;
     case 'random_question':
-      return `随机提问 - ${(task as RandomQuestion).student.username}`;
+      const rq = task as RandomQuestion;
+      if (rq.student) {
+        return `随机提问 - ${rq.student.username}`;
+      }
+      return '随机提问';
     case 'vote':
       return (task as Vote).title;
     default:

@@ -26,9 +26,14 @@ export const useUserStore = defineStore('user', () => {
 
   const logout = () => {
     user.value = null;
-    // Also clear any tokens from localStorage if they exist
-    localStorage.removeItem('access');
-    localStorage.removeItem('refresh');
+    // Clear all authentication-related data from localStorage
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('username');
+
+    // Force a full page reload to the login page to clear all state
+    window.location.href = '/login';
   };
 
   return {
