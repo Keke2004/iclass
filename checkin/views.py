@@ -51,6 +51,10 @@ class CheckinViewSet(viewsets.ModelViewSet):
         if not created:
             return Response({'error': 'You have already checked in'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Set the check-in time upon successful creation
+        record.checkin_time = timezone.now()
+        record.save()
+
         serializer = CheckinRecordSerializer(record)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
