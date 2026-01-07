@@ -5,7 +5,7 @@ from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Q
+from django.db.models import Q, Count, F
 
 from .models import Exam, ExamQuestion, ExamSubmission, ExamAnswer
 from .serializers import ExamSerializer, ExamSubmissionSerializer
@@ -58,19 +58,22 @@ class ExamViewSet(viewsets.ModelViewSet):
         if status:
             now = timezone.now()
             if user.role == 'teacher':
+                queryset = queryset.annotate(
+                    total_submissions=Count('submissions', distinct=True),
+                    graded_submissions=Count('submissions', filter=Q(submissions__status='graded'), distinct=True)
+                )
                 if status == 'grading':
-                    # Filter for exams that have submissions but not all are graded
-                    queryset = [
-                        exam for exam in queryset 
-                        if exam.submissions.count() > 0 and 
-                           exam.submissions.filter(status='graded').count() < exam.course.students.count()
-                    ]
+                    # "In Progress" OR ("Ended" AND "Has Submissions" AND "Not Fully Graded")
+                    queryset = queryset.filter(
+                        Q(end_time__gte=now) | 
+                        (Q(end_time__lt=now) & Q(total_submissions__gt=0) & ~Q(total_submissions=F('graded_submissions')))
+                    )
                 elif status == 'graded_completed':
-                    # Filter for exams where all students' submissions are graded
-                    queryset = [
-                        exam for exam in queryset 
-                        if exam.submissions.filter(status='graded').count() == exam.course.students.count()
-                    ]
+                    # "Has Submissions" AND "All Submissions are Graded"
+                    queryset = queryset.filter(
+                        total_submissions__gt=0, 
+                        total_submissions=F('graded_submissions')
+                    )
             elif user.role == 'student':
                 if status == 'pending':
                     # Not submitted and not past the end time

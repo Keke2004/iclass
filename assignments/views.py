@@ -3,6 +3,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.utils import timezone
 from django.db.models import Q
 
 from .models import Assignment, Submission, Answer
@@ -46,8 +47,10 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         if user.role == 'teacher' or user.is_staff or user.is_superuser:
             show_answers = True
         elif user.role == 'student':
-            # Show answers if the student has a graded submission for this assignment
-            if Submission.objects.filter(assignment=instance, student=user, status='graded').exists():
+            # Show answers if the student has a graded submission or if the due date has passed
+            has_graded_submission = Submission.objects.filter(assignment=instance, student=user, status='graded').exists()
+            is_past_due = instance.due_date and timezone.now() > instance.due_date
+            if has_graded_submission or is_past_due:
                 show_answers = True
         
         context = self.get_serializer_context()

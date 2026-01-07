@@ -10,8 +10,8 @@
       
       <el-tabs v-if="isTeacher" v-model="activeTab" @tab-change="fetchData" class="custom-tabs">
         <el-tab-pane label="全部考试" name="all"></el-tab-pane>
-        <el-tab-pane label="批改中" name="grading"></el-tab-pane>
-        <el-tab-pane label="批改完成" name="graded_completed"></el-tab-pane>
+        <el-tab-pane label="待批改" name="grading"></el-tab-pane>
+        <el-tab-pane label="已批改" name="graded_completed"></el-tab-pane>
       </el-tabs>
       <el-tabs v-else v-model="activeTab" @tab-change="fetchData" class="custom-tabs">
         <el-tab-pane label="全部考试" name="all"></el-tab-pane>
@@ -156,10 +156,10 @@ const getTeacherExamStatus = (exam: any) => {
   if (!stats) return { text: '加载中', type: 'info' };
 
   if (stats.graded_submissions === stats.total_students) {
-    return { text: '批改完成', type: 'success' };
+    return { text: '已批改', type: 'success' };
   }
   if (stats.total_submissions > 0) {
-    return { text: '批改中', type: 'warning' };
+    return { text: '待批改', type: 'warning' };
   }
   const now = new Date();
   const endTime = new Date(exam.end_time);

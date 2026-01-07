@@ -12,9 +12,9 @@
             <span v-else>截止时间: {{ formatDate(assignment.due_date) }}</span>
           </div>
         </div>
-        <div class="header-right" v-if="isStudent && isGraded">
+        <div class="header-right" v-if="isStudent && showResults">
           <span class="score-label">得分</span>
-          <span class="score-value">{{ submission.grade }}</span>
+          <span class="score-value">{{ isGraded ? submission.grade : 0 }}</span>
         </div>
       </div>
     </el-card>
@@ -63,10 +63,10 @@
                 </div>
 
                 <!-- Graded Result Box -->
-                <div v-if="isGraded" class="graded-result-box">
+                <div v-if="showResults" class="graded-result-box">
                   <div class="result-answers">
                     <span class="answer-label">我的答案:</span>
-                    <span class="answer-text">{{ getStudentAnswerText(question) || '未作答' }}</span>
+                    <span class="answer-text" :class="{'unanswered-text': !getStudentAnswerText(question)}">{{ getStudentAnswerText(question) || '未作答' }}</span>
                     <span class="answer-label" style="margin-left: 20px;">正确答案:</span>
                     <span class="answer-text correct-answer-text">{{ getCorrectAnswerForQuestion(question) }}</span>
                   </div>
@@ -157,11 +157,11 @@
               {{ index + 1 }}
             </el-button>
           </div>
-           <div v-if="isGraded" class="sidebar-summary">
+           <div v-if="showResults" class="sidebar-summary">
             <h4>作业总览</h4>
-            <p>最终得分: {{ submission.grade }} / {{ totalPoints }}</p>
+            <p>最终得分: {{ isGraded ? submission.grade : 0 }} / {{ totalPoints }}</p>
             <h4>教师评语</h4>
-            <p>{{ submission.feedback || '暂无评语' }}</p>
+            <p>{{ submission?.feedback || '暂无评语' }}</p>
           </div>
         </el-card>
 
@@ -320,6 +320,13 @@ const isTeacher = computed(() => userRole === 'teacher');
 const isGraded = computed(() => isStudent.value && submission.value?.status === 'graded');
 
 const isSubmitted = computed(() => isStudent.value && submission.value?.status === 'submitted');
+
+const isMissed = computed(() => {
+  if (!isStudent.value || submission.value) return false;
+  return assignment.value && new Date(assignment.value.due_date) < new Date();
+});
+
+const showResults = computed(() => isGraded.value || isMissed.value);
 
 const isReadOnly = computed(() => {
   // 教师视图总是只读（不直接作答）
@@ -548,12 +555,18 @@ const submitAssignment = async () => {
 
 <style scoped>
 .assignment-detail-container {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
   padding: 20px;
   background-color: #f4f5f7;
+  height: calc(100vh - 100px); /* Adjust this value based on your layout's header height */
+  width: 100%;
 }
 
 .page-header-card {
   margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
 .header-content {
@@ -593,7 +606,29 @@ const submitAssignment = async () => {
 }
 
 .main-content {
+  flex-grow: 1;
+  overflow: hidden;
+  height: 100%;
+}
+
+.main-content > .el-col {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-card,
+.sidebar-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   width: 100%;
+}
+
+.main-card > :deep(.el-card__body),
+.sidebar-card > :deep(.el-card__body) {
+  flex-grow: 1;
+  overflow-y: auto;
 }
 
 .question-list {
@@ -658,6 +693,10 @@ const submitAssignment = async () => {
   font-weight: 500;
 }
 
+.unanswered-text {
+  color: #f56c6c;
+}
+
 .result-icon {
   margin-left: 10px;
   font-size: 18px;
@@ -707,11 +746,6 @@ const submitAssignment = async () => {
 .submission-actions {
   margin-top: 30px;
   text-align: center;
-}
-
-.sidebar-card {
-  position: sticky;
-  top: 20px;
 }
 
 .question-nav-grid {

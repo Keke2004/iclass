@@ -34,18 +34,6 @@ const router = createRouter({
         meta: { requiresAuth: true, roles: ['teacher'] }
       },
       {
-        path: '/exams/:id/notice',
-        name: 'ExamNotice',
-        component: () => import('../views/common/ExamNotice.vue'),
-        meta: { requiresAuth: true, roles: ['student'] }
-      },
-      {
-        path: '/exams/:id',
-        name: 'ExamDetail',
-        component: () => import('../views/common/ExamDetail.vue'),
-        meta: { requiresAuth: true, roles: ['student', 'teacher'] }
-      },
-      {
         path: '/login',
         name: 'login',
         component: LoginView
@@ -97,6 +85,18 @@ const router = createRouter({
           component: () => import('../views/common/AssignmentDetail.vue'),
           meta: { requiresAuth: true, roles: ['student', 'teacher'] },
           props: true
+        },
+        {
+          path: '/exams/:id/notice',
+          name: 'ExamNotice',
+          component: () => import('../views/common/ExamNotice.vue'),
+          meta: { requiresAuth: true, roles: ['student'] }
+        },
+        {
+          path: '/exams/:id',
+          name: 'ExamDetail',
+          component: () => import('../views/common/ExamDetail.vue'),
+          meta: { requiresAuth: true, roles: ['student', 'teacher'] }
         },
         {
           path: '/courses/:id',
