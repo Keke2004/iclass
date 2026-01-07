@@ -25,7 +25,6 @@ export const useUserStore = defineStore('user', () => {
   };
 
   const logout = () => {
-    user.value = null;
     // Clear all authentication-related data from localStorage
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
