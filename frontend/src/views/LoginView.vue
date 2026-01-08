@@ -1,48 +1,48 @@
 <template>
   <div class="login-container">
-    <el-card class="login-card">
-      <template #header>
-        <div class="card-header">
-          <span>智慧课堂互动平台</span>
-        </div>
-      </template>
-      <el-form
-        ref="loginFormRef"
-        :model="loginForm"
-        :rules="loginRules"
-        label-position="top"
-        @submit.prevent="handleLogin"
-      >
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="loginForm.username" placeholder="请输入用户名" size="large" />
-        </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input
-            v-model="loginForm.password"
-            type="password"
-            placeholder="请输入密码"
-            show-password
-            size="large"
-          />
-        </el-form-item>
-        <el-form-item label="角色" prop="role">
-          <el-radio-group v-model="loginForm.role" class="role-radio-group">
-            <el-radio-button label="student">学生</el-radio-button>
-            <el-radio-button label="teacher">教师</el-radio-button>
-            <el-radio-button label="admin">管理员</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" native-type="submit" class="login-button" size="large">
-            登 录
-          </el-button>
-        </el-form-item>
-        <div class="extra-links">
-          <el-link type="primary" @click="$router.push('/forgot-password')">忘记密码？</el-link>
-          <el-link type="primary" @click="$router.push('/register')">没有账户？立即注册</el-link>
-        </div>
-      </el-form>
-    </el-card>
+    <div class="login-box">
+      <div class="illustration-wrapper"></div>
+      <div class="form-wrapper">
+        <h1 class="title">智慧课堂互动平台</h1>
+        <el-form
+          ref="loginFormRef"
+          :model="loginForm"
+          :rules="loginRules"
+          label-position="top"
+          @submit.prevent="handleLogin"
+          class="login-form"
+        >
+          <el-form-item label="用户名" prop="username">
+            <el-input v-model="loginForm.username" placeholder="请输入用户名" size="large" />
+          </el-form-item>
+          <el-form-item label="密码" prop="password">
+            <el-input
+              v-model="loginForm.password"
+              type="password"
+              placeholder="请输入密码"
+              show-password
+              size="large"
+            />
+          </el-form-item>
+          <el-form-item label="角色" prop="role">
+            <el-radio-group v-model="loginForm.role" class="role-radio-group">
+              <el-radio-button label="student">学生</el-radio-button>
+              <el-radio-button label="teacher">教师</el-radio-button>
+              <el-radio-button label="admin">管理员</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" native-type="submit" class="login-button" size="large">
+              登 录
+            </el-button>
+          </el-form-item>
+          <div class="extra-links">
+            <el-link type="primary" @click="$router.push('/forgot-password')">忘记密码？</el-link>
+            <el-link type="primary" @click="$router.push('/register')">没有账户？立即注册</el-link>
+          </div>
+        </el-form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -139,28 +139,66 @@ const handleLogin = async () => {
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
-.login-card {
-  width: 400px;
+.login-box {
+  display: flex;
+  width: 1080px; /* Adjusted width for better proportions */
+  height: 480px; /* Make it flatter */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #fff;
 }
 
-.card-header {
-  text-align: center;
-  font-size: 24px;
+.illustration-wrapper {
+  flex: 2.0; /* Make illustration even wider */
+  background-image: url('/login.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #eef4ff;
+}
+
+.form-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px 30px;
+}
+
+.title {
+  font-size: 26px;
   font-weight: bold;
+  text-align: center;
+  margin-bottom: 30px;
+  color: #333;
+}
+
+.login-form .el-form-item {
+  margin-bottom: 20px;
+}
+
+/* Style for required fields */
+.login-form .el-form-item.is-required .el-form-item__label::before {
+  content: '*';
+  color: #f56c6c;
+  margin-right: 4px;
 }
 
 .login-button {
   width: 100%;
+  margin-top: 10px;
 }
 
 .role-radio-group {
-  width: 100%;
-  justify-content: space-around;
+  display: flex;
+  justify-content: flex-start; /* Align to the left */
 }
 
 .extra-links {
   display: flex;
   justify-content: space-between;
-  margin-top: 10px;
+  margin-top: 15px;
+  font-size: 14px;
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <el-container class="layout-container">
     <el-header class="layout-header">
-      <div class="logo">
+      <div class="logo" @click="goHome" style="cursor: pointer;">
         <span>智慧课堂</span>
       </div>
       <div class="user-info">
@@ -98,15 +98,19 @@ const username = computed(() => userStore.user?.username || '用户');
 const homePath = computed(() => {
   switch (userRole.value) {
     case 'student':
-      return '/student/dashboard';
+      return '/student/courses';
     case 'teacher':
-      return '/teacher/dashboard';
+      return '/teacher/courses';
     case 'admin':
-      return '/admin/dashboard';
+      return '/admin/users';
     default:
       return '/';
   }
 });
+
+const goHome = () => {
+  router.push(homePath.value);
+};
 
 // 处理下拉菜单命令
 const handleCommand = (command: string | number | object) => {
