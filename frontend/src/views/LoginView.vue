@@ -13,7 +13,12 @@
           class="login-form"
         >
           <el-form-item label="用户名" prop="username">
-            <el-input v-model="loginForm.username" placeholder="请输入用户名" size="large" />
+            <el-input
+              v-model="loginForm.username"
+              placeholder="请输入用户名"
+              size="large"
+              :prefix-icon="User"
+            />
           </el-form-item>
           <el-form-item label="密码" prop="password">
             <el-input
@@ -22,6 +27,7 @@
               placeholder="请输入密码"
               show-password
               size="large"
+              :prefix-icon="Lock"
             />
           </el-form-item>
           <el-form-item label="角色" prop="role">
@@ -48,6 +54,7 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
+import { User, Lock } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
 import type { FormInstance, FormRules } from 'element-plus';
 import { ElMessage } from 'element-plus';
@@ -188,17 +195,71 @@ const handleLogin = async () => {
 .login-button {
   width: 100%;
   margin-top: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px rgba(64, 158, 255, 0.3);
 }
 
+.login-button:hover {
+  opacity: 0.9;
+}
+
+/* 优化角色选择按钮样式 */
 .role-radio-group {
   display: flex;
-  justify-content: flex-start; /* Align to the left */
+  width: 100%;
+  justify-content: center;
+  gap: 10px; /* 增加按钮之间的间距 */
+}
+
+.role-radio-group :deep(.el-radio-button__inner) {
+  border-radius: 8px !important; /* 使用 !important 确保覆盖默认样式 */
+  border: 1px solid #dcdfe6;
+  padding: 12px 20px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background-color: #f5f7fa;
+  color: #606266;
+}
+
+.role-radio-group :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background-color: #409eff;
+  border-color: #409eff;
+  color: #ffffff;
+  box-shadow: none; /* 移除 Element Plus 的默认阴影 */
+}
+
+.role-radio-group :deep(.el-radio-button:hover:not(.is-active) .el-radio-button__inner) {
+  color: #409eff;
+}
+
+.login-form :deep(.el-form-item__label) {
+  color: #606266;
+  font-weight: 500;
+  margin-bottom: 4px !important;
+}
+
+.login-form :deep(.el-input__wrapper) {
+  transition: border-color 0.3s ease;
+}
+
+.login-form :deep(.el-input__wrapper:hover) {
+  border-color: #409eff;
 }
 
 .extra-links {
   display: flex;
   justify-content: space-between;
   margin-top: 15px;
-  font-size: 14px;
+  font-size: 13px;
+}
+
+.extra-links .el-link {
+  color: #909399;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.extra-links .el-link:hover {
+  color: #409eff;
 }
 </style>

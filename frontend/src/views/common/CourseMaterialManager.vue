@@ -1,23 +1,26 @@
 <template>
   <div class="course-material-manager">
     <div class="toolbar">
-      <div>
-        <el-button type="primary" @click="handleUpload" v-if="isTeacher">上传文件</el-button>
-        <el-button type="success" @click="downloadAll" v-if="selectedMaterials.length > 0">全部下载</el-button>
-        <el-button type="danger" @click="deleteAll" v-if="selectedMaterials.length > 0 && isTeacher">全部删除</el-button>
+      <h1 class="page-title">课程资料</h1>
+      <div class="controls">
+        <div>
+          <el-button type="primary" @click="handleUpload" v-if="isTeacher">上传文件</el-button>
+          <el-button type="success" @click="downloadAll" v-if="selectedMaterials.length > 0">全部下载</el-button>
+          <el-button type="danger" @click="deleteAll" v-if="selectedMaterials.length > 0 && isTeacher">全部删除</el-button>
+        </div>
+        <el-input
+          v-model="searchQuery"
+          placeholder="搜索文件"
+          class="search-input"
+          clearable
+          @clear="fetchMaterials"
+          @keyup.enter="fetchMaterials"
+        >
+          <template #append>
+            <el-button @click="fetchMaterials"><el-icon><Search /></el-icon></el-button>
+          </template>
+        </el-input>
       </div>
-      <el-input
-        v-model="searchQuery"
-        placeholder="搜索文件"
-        class="search-input"
-        clearable
-        @clear="fetchMaterials"
-        @keyup.enter="fetchMaterials"
-      >
-        <template #append>
-          <el-button @click="fetchMaterials"><el-icon><Search /></el-icon></el-button>
-        </template>
-      </el-input>
     </div>
 
     <el-table :data="materials" v-loading="loading" class="material-table" @selection-change="handleSelectionChange">
@@ -293,7 +296,18 @@ onMounted(fetchMaterials);
 .toolbar {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
+}
+.page-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0;
+}
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 .search-input {
   width: 300px;

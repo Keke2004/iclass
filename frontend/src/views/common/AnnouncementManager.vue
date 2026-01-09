@@ -1,7 +1,7 @@
 <template>
   <div class="announcement-manager">
     <div class="header">
-      <h1>课程公告</h1>
+      <h1 class="page-title">课程公告</h1>
       <el-button v-if="isTeacher" type="primary" @click="openAddDialog">发布新公告</el-button>
     </div>
 
@@ -167,6 +167,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.page-title {
+  font-size: 24px;
+  font-weight: bold;
+}
 .announcement-manager {
   padding: 20px;
   display: flex;

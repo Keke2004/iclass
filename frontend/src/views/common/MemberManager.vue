@@ -1,6 +1,6 @@
 <template>
   <div class="member-manager">
-    <h1>课程成员</h1>
+    <h1 class="page-title">课程成员</h1>
 
     <el-card class="box-card">
       <template #header>
@@ -137,6 +137,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.page-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
 .member-manager {
   padding: 20px;
 }

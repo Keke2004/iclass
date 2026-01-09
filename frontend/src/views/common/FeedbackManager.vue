@@ -1,7 +1,7 @@
 <template>
   <div class="feedback-manager">
     <div class="header">
-      <h1>教学反馈</h1>
+      <h1 class="page-title">教学反馈</h1>
       <el-button v-if="isTeacher" type="primary" @click="createQuestionnaire">创建新反馈</el-button>
     </div>
 
@@ -64,6 +64,10 @@ onMounted(fetchQuestionnaires);
 </script>
 
 <style scoped>
+.page-title {
+  font-size: 24px;
+  font-weight: bold;
+}
 .feedback-manager {
   padding: 20px;
 }

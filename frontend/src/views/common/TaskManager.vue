@@ -1,7 +1,7 @@
 <template>
   <div class="task-manager">
     <div class="header">
-      <h1>任务列表</h1>
+      <h1 class="page-title">任务列表</h1>
       <div v-if="isTeacher">
         <el-button @click="showCreateCheckinDialog = true" type="primary">发起签到</el-button>
         <el-button @click="handleCreateRandomQuestion" type="success">发起提问</el-button>
@@ -264,6 +264,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.page-title {
+  font-size: 24px;
+  font-weight: bold;
+}
 .task-manager {
   padding: 20px;
 }
