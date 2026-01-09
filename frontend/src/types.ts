@@ -58,7 +58,17 @@ export interface Vote {
   task_type: 'vote';
 }
 
-export type Task = Checkin | RandomQuestion | Vote;
+export interface Questionnaire {
+  id: number;
+  title: string;
+  description: string;
+  course: number;
+  created_at: string;
+  is_active: boolean;
+  task_type: 'feedback';
+}
+
+export type Task = Checkin | RandomQuestion | Vote | Questionnaire;
 
 export interface DirectPasswordResetPayload {
   username: string;

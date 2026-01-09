@@ -23,8 +23,10 @@ from checkin.models import Checkin, CheckinRecord
 from assignments.models import Assignment, Submission
 from exams.models import Exam, ExamSubmission
 from interaction.models import DiscussionTopic, DiscussionReply, RandomQuestion, Vote
+from feedback.models import Questionnaire
 from checkin.serializers import CheckinSerializer
 from interaction.serializers import RandomQuestionSerializer, VoteSerializer
+from feedback.serializers import QuestionnaireSerializer
 from itertools import chain
 
 class ChapterViewSet(viewsets.ModelViewSet):
@@ -444,9 +446,18 @@ class TaskListView(APIView):
         vote_data = VoteSerializer(votes, many=True, context={'request': request}).data
         # 'task_type' 已经在 VoteSerializer 中设置了
 
+        # 获取所有反馈任务
+        questionnaires = Questionnaire.objects.filter(course=course)
+        questionnaire_data = QuestionnaireSerializer(questionnaires, many=True, context={'request': request}).data
+        for item in questionnaire_data:
+            item['task_type'] = 'feedback'
+            item['start_time'] = item['created_at']
+            # is_active 应该由模型或序列化器定义，这里暂时设为True，后续可以根据需求调整
+            item['is_active'] = True 
+
         # 合并并按开始时间降序排序
         combined_tasks = sorted(
-            chain(checkin_data, random_question_data, vote_data),
+            chain(checkin_data, random_question_data, vote_data, questionnaire_data),
             key=lambda x: x.get('start_time'),
             reverse=True
         )

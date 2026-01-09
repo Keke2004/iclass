@@ -1,7 +1,7 @@
 <template>
   <div class="announcement-manager">
     <div class="header">
-      <h3>课程公告</h3>
+      <h1>课程公告</h1>
       <el-button v-if="isTeacher" type="primary" @click="openAddDialog">发布新公告</el-button>
     </div>
 

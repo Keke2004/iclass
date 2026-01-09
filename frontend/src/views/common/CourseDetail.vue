@@ -38,6 +38,10 @@
             <el-icon><el-icon-bell /></el-icon>
             <span>公告</span>
           </el-menu-item>
+          <el-menu-item index="feedback">
+            <el-icon><el-icon-chat-line-square /></el-icon>
+            <span>教学反馈</span>
+          </el-menu-item>
           <el-menu-item index="materials">
             <el-icon><el-icon-folder /></el-icon>
             <span>课程资料</span>
@@ -72,6 +76,7 @@ import {
   Menu as ElIconMenu,
   Notebook as ElIconNotebook,
   ChatDotRound as ElIconChatDotRound,
+  ChatLineSquare as ElIconChatLineSquare,
   EditPen as ElIconEditPen,
   Finished as ElIconFinished,
   Bell as ElIconBell,
@@ -102,6 +107,11 @@ const routeNameToMenuIndex: { [key: string]: string } = {
   'section-detail': 'chapters',
   'course-members': 'members',
   'course-announcements': 'announcements',
+  'course-feedback': 'feedback',
+  'course-feedback-create': 'feedback',
+  'course-feedback-edit': 'feedback',
+  'course-feedback-fill': 'feedback',
+  'course-feedback-results': 'feedback',
   'course-materials': 'materials',
   'course-assignments': 'assignments',
   'course-exams': 'exams',
@@ -115,6 +125,7 @@ const handleMenuSelect = (index: string) => {
     chapters: 'chapter-manager',
     members: 'course-members',
     announcements: 'course-announcements',
+    feedback: 'course-feedback',
     materials: 'course-materials',
     assignments: 'course-assignments',
     exams: 'course-exams',

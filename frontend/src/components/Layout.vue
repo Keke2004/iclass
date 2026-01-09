@@ -38,7 +38,7 @@
           <template v-if="userRole === 'student'">
             <el-menu-item index="/student/courses">
               <el-icon><management /></el-icon>
-              <span>我的课程</span>
+              <span>课程列表</span>
             </el-menu-item>
           </template>
 

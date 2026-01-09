@@ -1,7 +1,7 @@
 <template>
   <div class="course-list-container">
     <div class="header">
-      <h1>我的课程</h1>
+      <h1>课程列表</h1>
       <el-input
         v-model="searchQuery"
         placeholder="搜索课程"
@@ -43,7 +43,6 @@ interface Teacher {
 interface Course {
   id: number;
   name: string;
-  description: string;
   teacher: Teacher;
 }
 
@@ -58,8 +57,7 @@ const filteredCourses = computed(() => {
   }
   const query = searchQuery.value.toLowerCase();
   return courses.value.filter(course =>
-    course.name.toLowerCase().includes(query) ||
-    course.description.toLowerCase().includes(query)
+    course.name.toLowerCase().includes(query)
   );
 });
 

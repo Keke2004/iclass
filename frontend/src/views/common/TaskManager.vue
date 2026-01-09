@@ -116,7 +116,7 @@ const endedTasks = computed(() => tasks.value.filter(t => !t.is_active));
 const fetchTasks = async () => {
   try {
     const response = await getTasks(courseId);
-    tasks.value = response.data;
+    tasks.value = response.data.filter((task: Task) => getTaskTypeName(task.task_type) !== '未知');
   } catch (error) {
     console.error('Failed to fetch tasks:', error);
     ElMessage.error('获取任务列表失败');

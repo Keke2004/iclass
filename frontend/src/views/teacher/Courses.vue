@@ -1,7 +1,7 @@
 <template>
   <div class="course-list-container">
     <div class="header">
-      <h1>我的课程</h1>
+      <h1>课程列表</h1>
       <div class="header-actions">
         <el-input
           v-model="searchQuery"

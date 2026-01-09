@@ -1,6 +1,6 @@
 <template>
   <div class="member-manager">
-    <h3>课程成员</h3>
+    <h1>课程成员</h1>
 
     <el-card class="box-card">
       <template #header>

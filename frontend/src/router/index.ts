@@ -189,6 +189,36 @@ const router = createRouter({
               path: 'learning-records',
               name: 'course-learning-records',
               component: () => import('@/views/common/LearningRecord.vue')
+            },
+            {
+              path: 'feedback',
+              name: 'course-feedback',
+              component: () => import('@/views/common/FeedbackManager.vue'),
+              meta: { requiresAuth: true, roles: ['teacher', 'student'] }
+            },
+            {
+              path: 'feedback/create',
+              name: 'course-feedback-create',
+              component: () => import('@/views/teacher/FeedbackEditor.vue'),
+              meta: { requiresAuth: true, roles: ['teacher'] }
+            },
+            {
+              path: 'feedback/:feedbackId/edit',
+              name: 'course-feedback-edit',
+              component: () => import('@/views/teacher/FeedbackEditor.vue'),
+              meta: { requiresAuth: true, roles: ['teacher'] }
+            },
+            {
+              path: 'feedback/:feedbackId/fill',
+              name: 'course-feedback-fill',
+              component: () => import('@/views/student/FeedbackForm.vue'),
+              meta: { requiresAuth: true, roles: ['student'] }
+            },
+            {
+              path: 'feedback/:feedbackId/results',
+              name: 'course-feedback-results',
+              component: () => import('@/views/teacher/FeedbackResult.vue'),
+              meta: { requiresAuth: true, roles: ['teacher'] }
             }
             // 其他子路由可以根据需要在这里添加
           ]

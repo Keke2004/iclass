@@ -8,7 +8,6 @@ class Questionnaire(models.Model):
     """
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='questionnaires', verbose_name='所属课程')
     title = models.CharField(max_length=255, verbose_name='问卷标题')
-    description = models.TextField(blank=True, null=True, verbose_name='问卷描述')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
 
     def __str__(self):
