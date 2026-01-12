@@ -93,7 +93,7 @@
               </div>
             </div>
             <div class="submission-actions" v-if="!isGraded && !isReadOnly">
-              <el-button type="primary" @click="submitExam" :loading="isSubmitting" :disabled="isSubmitting">提交考试</el-button>
+              <el-button type="primary" @click="() => submitExam()" :loading="isSubmitting" :disabled="isSubmitting">提交考试</el-button>
             </div>
           </div>
 
@@ -496,6 +496,7 @@ const getStudentStatusText = (status: string | null | undefined) => {
   const map: { [key: string]: string } = {
     'graded': '已批改',
     'submitted': '待批改',
+    'taking': '未提交',
     'not_submitted': '未提交'
   };
   if (!status) {
@@ -508,6 +509,7 @@ const getStudentStatusTagType = (status: string) => {
   const map: { [key: string]: string } = {
     'graded': 'success',
     'submitted': 'warning',
+    'taking': 'info',
     'not_submitted': 'info'
   };
   return map[status] || 'info';
@@ -557,22 +559,19 @@ async function saveGrades() {
 }
 
 const submitExam = async (isAutoSubmit = false) => {
-  if (!isAutoSubmit) {
-    try {
+  if (isSubmitting.value) return;
+
+  try {
+    if (!isAutoSubmit) {
       await ElMessageBox.confirm('确认提交考试吗？提交后将无法修改。', '提示', {
         confirmButtonText: '确认',
         cancelButtonText: '取消',
         type: 'warning',
       });
-    } catch (e) {
-      return; // User cancelled
     }
-  }
 
-  if (isSubmitting.value) return;
-  isSubmitting.value = true;
+    isSubmitting.value = true;
 
-  try {
     if (timer.value) {
       clearInterval(timer.value);
       timer.value = null;
@@ -596,19 +595,23 @@ const submitExam = async (isAutoSubmit = false) => {
         }
         return null;
       })
-      .filter(p => p); // filter out nulls
+      .filter(p => p);
 
-    // Allow submitting empty answers on auto-submit, but warn on manual submit
     if (answersPayload.length === 0 && !isAutoSubmit) {
       ElMessage.warning('您还没有回答任何问题。');
-    } else {
-      const submissionPayload = { answers: answersPayload };
-      await api.post(`/exam-submissions/${submission.value.id}/submit/`, submissionPayload);
-      ElMessage.success('考试提交成功！');
-      // Redirect to the exam list page of the course
-      router.push({ name: 'course-exams', params: { id: exam.value.course } });
+      return;
     }
+    
+    const submissionPayload = { answers: answersPayload };
+    await api.post(`/exam-submissions/${submission.value.id}/submit/`, submissionPayload);
+    ElMessage.success('考试提交成功！');
+    router.push({ name: 'course-exams', params: { id: exam.value.course } });
+
   } catch (error) {
+    if (error === 'cancel') {
+      ElMessage.info('已取消提交');
+      return;
+    }
     console.error('Failed to submit exam:', error);
     ElMessage.error('提交失败，请检查网络或联系教师。');
   } finally {

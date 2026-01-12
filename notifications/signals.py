@@ -175,16 +175,25 @@ def create_exam_notification(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=ExamSubmission)
 def create_exam_submission_notification(sender, instance, created, **kwargs):
-    if created:
+    # Only notify when the submission is actually submitted, not just started.
+    if instance.status == 'submitted':
         exam = instance.exam
         course = exam.course
-        Notification.objects.create(
+        content_type = ContentType.objects.get_for_model(instance)
+
+        # Prevent duplicate notifications.
+        if not Notification.objects.filter(
             recipient=course.teacher,
-            sender=instance.student,
-            message=f"学生 {instance.student.username} 提交了考试\"{exam.title}\"。",
-            content_type=ContentType.objects.get_for_model(instance),
+            content_type=content_type,
             object_id=instance.id
-        )
+        ).exists():
+            Notification.objects.create(
+                recipient=course.teacher,
+                sender=instance.student,
+                message=f"学生 {instance.student.username} 提交了考试\"{exam.title}\"。",
+                content_type=content_type,
+                object_id=instance.id
+            )
 
 @receiver(post_save, sender=Submission)
 def create_submission_notification(sender, instance, created, **kwargs):
