@@ -40,6 +40,15 @@
               <el-icon><management /></el-icon>
               <span>课程列表</span>
             </el-menu-item>
+            <el-menu-item index="/inbox">
+              <div class="menu-item-wrapper">
+                <span>
+                  <el-icon><bell /></el-icon>
+                  <span>收件箱</span>
+                </span>
+                <el-badge :value="unreadCount" :max="99" :hidden="unreadCount === 0" />
+              </div>
+            </el-menu-item>
           </template>
 
           <!-- 教师菜单 -->
@@ -47,6 +56,15 @@
             <el-menu-item index="/teacher/courses">
               <el-icon><management /></el-icon>
               <span>课程列表</span>
+            </el-menu-item>
+            <el-menu-item index="/inbox">
+              <div class="menu-item-wrapper">
+                <span>
+                  <el-icon><bell /></el-icon>
+                  <span>收件箱</span>
+                </span>
+                <el-badge :value="unreadCount" :max="99" :hidden="unreadCount === 0" />
+              </div>
             </el-menu-item>
           </template>
 
@@ -75,9 +93,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
+import { storeToRefs } from 'pinia';
 import {
   ArrowDown,
   Management,
@@ -85,14 +104,25 @@ import {
   DataLine,
   Tickets,
   Document,
+  Bell,
 } from '@element-plus/icons-vue';
+import api from '@/services/api';
 
 const router = useRouter();
 const userStore = useUserStore();
 
 // 从 Pinia store 获取用户信息
-const userRole = computed(() => userStore.user?.role);
-const username = computed(() => userStore.user?.username || '用户');
+const { user: storeUser, unreadCount } = storeToRefs(userStore);
+const { fetchUnreadCount } = userStore;
+
+const userRole = computed(() => storeUser.value?.role);
+const username = computed(() => storeUser.value?.username || '用户');
+
+onMounted(() => {
+  fetchUnreadCount();
+  // Optionally, set up a poller to refresh the count periodically
+  setInterval(fetchUnreadCount, 60000); // every 60 seconds
+});
 
 // 根据角色计算首页路径
 const homePath = computed(() => {
@@ -219,4 +249,21 @@ const handleCommand = (command: string | number | object) => {
   display: flex;
   flex-direction: column;
 }
+
+.menu-item-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.menu-item-wrapper > span {
+  display: flex;
+  align-items: center;
+}
+
+.menu-item-wrapper :deep(.el-badge__content) {
+  transform: translateY(-100%);
+}
+
 </style>

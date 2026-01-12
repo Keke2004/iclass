@@ -19,6 +19,6 @@ export const getUserProfile = async (): Promise<User> => {
 import type { DirectPasswordResetPayload } from '../types';
 
 export const directPasswordReset = async (payload: DirectPasswordResetPayload) => {
-  const response = await apiClient.post('/auth/password/reset/direct/', payload);
+  const response = await apiClient.post('/users/auth/password/reset/direct/', payload);
   return response.data;
 };

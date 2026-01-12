@@ -28,6 +28,7 @@ urlpatterns = [
     path("api/", include('feedback.urls')),
     path("api/", include('logs.urls')),
     path("api/", include('interaction.urls')),
+    path("api/", include('notifications.urls')),
 ]
 
 if settings.DEBUG:

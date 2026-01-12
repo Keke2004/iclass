@@ -51,11 +51,12 @@ INSTALLED_APPS = [
     'users',
     'courses',
     'assignments',
+    'checkin',
+    'exams',
     'feedback',
     'interaction',
     'logs',
-    'exams',
-    'checkin',
+    'notifications',
 ]
 
 MIDDLEWARE = [

@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import ForgotPassword from '../views/ForgotPassword.vue'
@@ -66,6 +65,12 @@ const router = createRouter({
           path: '/profile',
           name: 'profile',
           component: () => import('../views/ProfileView.vue')
+        },
+        {
+          path: '/inbox',
+          name: 'Inbox',
+          component: () => import('@/views/common/InboxView.vue'),
+          meta: { requiresAuth: true, roles: ['student', 'teacher'] }
         },
         // Student Routes
         {

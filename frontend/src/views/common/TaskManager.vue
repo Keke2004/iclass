@@ -8,11 +8,11 @@
         <el-button @click="showCreateVoteDialog = true" type="warning">发起投票</el-button>
       </div>
     </div>
-
-    <div v-if="tasks.length > 0">
-      <div class="task-section" v-if="ongoingTasks.length > 0">
-        <h3 class="section-title">进行中 ({{ ongoingTasks.length }})</h3>
-        <div class="task-list">
+    <div class="task-scroll-area">
+      <div v-if="tasks.length > 0">
+        <div class="task-section" v-if="ongoingTasks.length > 0">
+          <h3 class="section-title">进行中 ({{ ongoingTasks.length }})</h3>
+          <div class="task-list">
           <div v-for="task in ongoingTasks" :key="task.task_type + '-' + task.id" class="task-item">
             <div class="task-info" @click="handleTaskClick(task)">
               <div :class="['task-icon-wrapper', getTaskStatusClass(task)]">
@@ -37,10 +37,11 @@
               <div class="task-time">结束时间: {{ formatTime(task.end_time || task.created_at) }}</div>
             </div>
           </div>
+          </div>
         </div>
       </div>
+      <el-empty v-else description="暂无任务"></el-empty>
     </div>
-    <el-empty v-else description="暂无任务"></el-empty>
 
     <el-dialog title="发起签到" v-model="showCreateCheckinDialog" width="30%">
       <el-form :model="newCheckinForm">
@@ -270,12 +271,20 @@ onMounted(() => {
 }
 .task-manager {
   padding: 20px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 150px);
 }
 .header {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+}
+.task-scroll-area {
+  flex-grow: 1;
+  overflow-y: auto;
 }
 .task-section {
   margin-bottom: 30px;

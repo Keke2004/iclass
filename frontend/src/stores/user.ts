@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { getUserProfile } from '@/services/auth';
+import api from '@/services/api';
 import type { User } from '@/types';
 
 export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null);
+  const unreadCount = ref(0);
 
   const isAuthenticated = computed(() => !!user.value);
   const isStudent = computed(() => user.value?.role === 'student');
@@ -24,6 +26,21 @@ export const useUserStore = defineStore('user', () => {
     }
   };
 
+  const fetchUnreadCount = async () => {
+    if (user.value?.role === 'student' || user.value?.role === 'teacher') {
+      try {
+        const response = await api.get('/notifications/unread_count/');
+        unreadCount.value = response.data.unread_count;
+      } catch (error) {
+        console.error('Failed to fetch unread count:', error);
+      }
+    }
+  };
+
+  const setUnreadCount = (count: number) => {
+    unreadCount.value = count;
+  };
+
   const logout = () => {
     // Clear all authentication-related data from localStorage
     localStorage.removeItem('access_token');
@@ -37,11 +54,14 @@ export const useUserStore = defineStore('user', () => {
 
   return {
     user,
+    unreadCount,
     isAuthenticated,
     isStudent,
     isTeacher,
     isAdmin,
     fetchUser,
+    fetchUnreadCount,
+    setUnreadCount,
     logout,
   };
 });
