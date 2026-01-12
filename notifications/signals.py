@@ -30,7 +30,7 @@ def create_questionnaire_notification(sender, instance, created, **kwargs):
             Notification.objects.create(
                 recipient=student,
                 sender=course.teacher,
-                message=f"课程\"{course.name}\"中发布了新的反馈问卷：'{instance.title}'。",
+                message=f"课程\"{course.name}\"中发布了新反馈：'{instance.title}'。",
                 content_type=ContentType.objects.get_for_model(instance),
                 object_id=instance.id
             )
@@ -44,7 +44,7 @@ def create_feedback_response_notification(sender, instance, created, **kwargs):
         Notification.objects.create(
             recipient=course.teacher,
             sender=instance.student,
-            message=f"学生 {student_name} 提交了问卷\"{questionnaire.title}\"的反馈。",
+            message=f"学生 {student_name} 提交了反馈\"{questionnaire.title}\"。",
             content_type=ContentType.objects.get_for_model(instance),
             object_id=instance.id
         )

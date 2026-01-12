@@ -24,7 +24,7 @@
           @click="handleNotificationClick(notification)"
         >
           <div class="notification-icon-wrapper" :class="notification.is_read ? 'status-read' : 'status-unread'">
-            <div class="notification-type-name">{{ getNotificationTypeName(notification.content_type) }}</div>
+            <div class="notification-type-name">{{ getNotificationTypeName(notification.content_type_name) }}</div>
           </div>
           <div class="notification-content">
             <div class="notification-message">{{ notification.message }}</div>
@@ -74,53 +74,97 @@ const handleNotificationClick = async (notification: any) => {
       console.error('Failed to mark notification as read:', error);
     }
   }
-  // Navigate to the related object's detail page
-  // This needs a mapping from content_type to a route name
-  const { content_type, object_id } = notification;
-  const route = getRouteForContentType(content_type, object_id);
+
+  const { content_type_name, related_object_info } = notification;
+  if (!related_object_info) {
+    console.warn('No routing info for this notification.');
+    return;
+  }
+
+  const { course_id, id: object_id } = related_object_info;
+  let route: any = null;
+
+  switch (content_type_name) {
+    case 'assignment':
+      route = { name: 'course-assignments', params: { id: course_id } };
+      break;
+    case 'exam':
+      route = { name: 'course-exams', params: { id: course_id } };
+      break;
+    case 'discussiontopic':
+      route = { name: 'course-discussion-detail', params: { id: course_id, topicId: object_id } };
+      break;
+    case 'announcement':
+      route = { name: 'course-announcements', params: { id: course_id } };
+      break;
+    case 'assignment':
+    case 'submission':
+      route = { name: 'assignment-detail', params: { id: object_id } };
+      break;
+    case 'exam':
+    case 'examsubmission':
+      route = { name: 'ExamDetail', params: { id: object_id } };
+      break;
+    case 'discussiontopic':
+      case 'discussionreply':
+        route = { name: 'course-discussion-detail', params: { id: course_id, topicId: object_id } };
+        break;
+      case 'feedbackresponse':
+        route = { name: 'course-feedback-results', params: { id: course_id, feedbackId: object_id } };
+        break;
+    case 'announcement':
+      route = { name: 'course-announcements', params: { id: course_id } };
+      break;
+    case 'vote':
+    case 'voteresponse':
+      route = { name: 'vote-detail', params: { id: course_id, voteId: object_id } };
+      break;
+    case 'checkin':
+    case 'checkinrecord':
+      route = { name: 'checkin-detail', params: { id: course_id, checkinId: object_id } };
+      break;
+    case 'question':
+      route = { name: 'QuestionDetail', params: { id: course_id, taskId: object_id } };
+      break;
+    case 'randomquestion':
+        route = { name: 'RandomQuestionDetail', params: { id: course_id, taskId: object_id } };
+        break;
+    case 'questionnaire':
+        // Assuming student fills feedback, teacher sees results
+        if (userStore.user?.role === 'student') {
+            route = { name: 'course-feedback-fill', params: { id: course_id, feedbackId: object_id } };
+        } else {
+            route = { name: 'course-feedback-results', params: { id: course_id, feedbackId: object_id } };
+        }
+        break;
+    default:
+      console.warn(`Unhandled content type: ${content_type_name}`);
+  }
+
   if (route) {
     router.push(route);
   }
 };
 
-const getRouteForContentType = (contentTypeId: number, objectId: number) => {
-    // This is a simplified mapping. In a real app, you might get this from the API
-    // or have a more robust system.
-    // You need to map content_type ID to your frontend routes.
-    // The IDs depend on the order of your models in INSTALLED_APPS.
-    // You can find the content_type IDs in your database's `django_content_type` table.
-    // Let's assume some IDs for now.
-    // 10: assignment, 11: submission, 12: exam, 13: examsubmission, etc.
-    // This part is highly dependent on your project's `django_content_type` table.
-    // You should replace these with the actual IDs from your database.
-    const contentTypeMap: { [key: number]: string } = {
-        10: 'AssignmentDetail', // Placeholder
-        11: 'SubmissionDetail', // Placeholder
-        12: 'ExamDetail', // Placeholder
-        13: 'ExamSubmissionDetail', // Placeholder
-        18: 'DiscussionTopicDetail', // Placeholder
-        8: 'CheckinDetail', // Placeholder
+const getNotificationTypeName = (contentTypeName: string) => {
+    const contentTypeMap: { [key: string]: string } = {
+        'announcement': '公告',
+        'assignment': '作业',
+        'submission': '作业',
+        'checkin': '签到',
+        'checkinrecord': '签到',
+        'discussiontopic': '讨论',
+        'discussionreply': '讨论',
+        'exam': '考试',
+        'examsubmission': '考试',
+        'question': '提问',
+        'questionnaire': '反馈',
+        'feedbackresponse': '反馈',
+        'vote': '投票',
+        'voteresponse': '投票',
+        'randomquestion': '提问',
     };
-    const routeName = contentTypeMap[contentTypeId];
-    if (routeName) {
-        return { name: routeName, params: { id: objectId } };
-    }
-    return null;
-}
-
-const getNotificationTypeName = (contentTypeId: number) => {
-    const contentTypeMap: { [key: number]: string } = {
-        9: '公告',
-        10: '作业',
-        35: '签到',
-        28: '讨论',
-        30: '考试',
-        20: '提问',
-        21: '反馈',
-        36: '提问',
-        15: '投票',
-    };
-    return contentTypeMap[contentTypeId] || '通知';
+    return contentTypeMap[contentTypeName] || '通知';
 };
 
 

@@ -103,6 +103,7 @@ const activeMenu = ref('tasks');
 const routeNameToMenuIndex: { [key: string]: string } = {
   'course-tasks': 'tasks',
   'course-discussions': 'discussions',
+  'course-discussion-detail': 'discussions',
   'chapter-manager': 'chapters',
   'section-detail': 'chapters',
   'course-members': 'members',
