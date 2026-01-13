@@ -1,6 +1,10 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db.models import Q
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import Notification
 from .serializers import NotificationSerializer
@@ -11,7 +15,16 @@ class NotificationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return self.queryset.filter(recipient=self.request.user).order_by('-timestamp')
+        queryset = self.queryset.filter(recipient=self.request.user)
+        
+        search_query = self.request.query_params.get('search', None)
+        if search_query:
+            queryset = queryset.filter(
+                Q(message__icontains=search_query) |
+                Q(sender__username__icontains=search_query)
+            )
+            
+        return queryset.order_by('-timestamp')
 
     @action(detail=False, methods=['get'])
     def unread_count(self, request):

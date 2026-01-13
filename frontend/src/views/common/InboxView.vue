@@ -4,7 +4,13 @@
       <template #header>
         <div class="card-header">
           <span>收件箱</span>
-          <div>
+          <div class="header-actions">
+            <el-input
+              v-model="searchQuery"
+              placeholder="搜索"
+              clearable
+              style="width: 200px; margin-right: 10px;"
+            />
             <el-button type="primary" @click="markAllAsRead">全部已读</el-button>
           </div>
         </div>
@@ -40,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import api from '@/services/api';
@@ -50,11 +56,16 @@ const router = useRouter();
 const userStore = useUserStore();
 const notifications = ref<any[]>([]);
 const loading = ref(true);
+const searchQuery = ref('');
 
 const fetchAllNotifications = async () => {
   loading.value = true;
   try {
-    const response = await api.get('/notifications/');
+    const params = new URLSearchParams();
+    if (searchQuery.value) {
+      params.append('search', searchQuery.value);
+    }
+    const response = await api.get('/notifications/', { params });
     notifications.value = response.data;
   } catch (error) {
     ElMessage.error('无法加载通知');
@@ -191,6 +202,10 @@ const markAllAsRead = async () => {
   }
 };
 
+watch(searchQuery, () => {
+  fetchAllNotifications();
+});
+
 onMounted(() => {
   fetchAllNotifications();
 });
@@ -222,6 +237,10 @@ onMounted(() => {
 .card-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+.header-actions {
+  display: flex;
   align-items: center;
 }
 .notification-item {
