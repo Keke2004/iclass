@@ -1,6 +1,12 @@
 <template>
   <div class="chapter-navigator">
-    <h4 class="navigator-title">课程大纲</h4>
+    <div class="navigator-header">
+      <h4 class="navigator-title">课程大纲</h4>
+      <div v-if="userStore.isStudent" class="progress-container">
+        <span class="progress-text">已完成任务点: {{ learningProgress.completed }}/{{ learningProgress.total }}</span>
+        <el-progress :percentage="learningProgress.percentage" :stroke-width="6" :show-text="false" class="progress-bar" />
+      </div>
+    </div>
     <el-collapse v-if="chapters.length > 0" v-model="activeCollapse" class="chapter-collapse">
       <el-collapse-item v-for="(chapter, index) in chapters" :key="chapter.id" :name="chapter.id">
         <template #title>
@@ -11,12 +17,12 @@
             v-for="(section, secIndex) in chapter.children" 
             :key="section.id" 
             class="section-item" 
-            :class="{ 'is-active': section.id === activeSectionId }"
+            :class="{ 'is-active': section.id === activeSectionId, 'is-read': section.is_read }"
             @click="handleSectionClick(section)"
           >
-            <el-icon class="completion-icon"><CircleCheckFilled /></el-icon>
+            <el-icon v-if="section.is_read" class="completion-icon is-read"><SuccessFilled /></el-icon>
+            <span v-else class="completion-icon-unread"></span>
             <span class="section-title">{{ `${index + 1}.${secIndex + 1} ${section.title}` }}</span>
-            <el-icon class="arrow-icon"><ArrowRight /></el-icon>
           </li>
         </ul>
       </el-collapse-item>
@@ -26,15 +32,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, defineProps } from 'vue';
+import { ref, onMounted, watch, defineProps, computed, defineEmits, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import apiClient from '../../services/api';
-import { ElCollapse, ElCollapseItem, ElEmpty, ElIcon } from 'element-plus';
-import { CircleCheckFilled, ArrowRight } from '@element-plus/icons-vue';
+import { useUserStore } from '@/stores/user';
+import { ElCollapse, ElCollapseItem, ElEmpty, ElIcon, ElProgress } from 'element-plus';
+import { SuccessFilled, ArrowRight } from '@element-plus/icons-vue';
 
 interface Chapter {
   id: number;
   title: string;
+  is_read: boolean;
   parent?: number | null;
   children?: Chapter[];
 }
@@ -44,14 +52,27 @@ const props = defineProps<{
   activeSectionId: number;
 }>();
 
-const router = useRouter();
-const chapters = ref<Chapter[]>([]);
-const activeCollapse = ref<string[]>([]);
+const emit = defineEmits(['refetchChapters']);
 
-const findChapterIdOfSection = (sectionId: number): string | null => {
+const router = useRouter();
+const userStore = useUserStore();
+const chapters = ref<Chapter[]>([]);
+const course = ref<{ progress: { completed: number, total: number } } | null>(null);
+const activeCollapse = ref<number[]>([]);
+
+const learningProgress = computed(() => {
+  if (course.value && course.value.progress) {
+    const { completed, total } = course.value.progress;
+    const percentage = total > 0 ? (completed / total) * 100 : 0;
+    return { completed, total, percentage };
+  }
+  return { completed: 0, total: 0, percentage: 0 };
+});
+
+const findChapterIdOfSection = (sectionId: number): number | null => {
   for (const chapter of chapters.value) {
     if (chapter.children?.some(section => section.id === sectionId)) {
-      return chapter.id.toString();
+      return chapter.id;
     }
   }
   return null;
@@ -59,18 +80,14 @@ const findChapterIdOfSection = (sectionId: number): string | null => {
 
 const fetchChapters = async () => {
   try {
-    const response = await apiClient.get(`/courses/${props.courseId}/chapters/`);
-    chapters.value = response.data;
-    // 默认展开包含当前激活节的章
-    const activeChapterId = findChapterIdOfSection(props.activeSectionId);
-    if (activeChapterId) {
-      activeCollapse.value = [activeChapterId];
-    } else if (chapters.value.length > 0) {
-      // 否则默认展开第一章
-      activeCollapse.value = [chapters.value[0].id.toString()];
-    }
+    const [chaptersResponse, courseResponse] = await Promise.all([
+      apiClient.get(`/courses/${props.courseId}/chapters/`),
+      apiClient.get(`/courses/${props.courseId}/`)
+    ]);
+    chapters.value = chaptersResponse.data;
+    course.value = courseResponse.data;
   } catch (error) {
-    console.error('获取章节列表失败:', error);
+    console.error('获取章节或课程数据失败:', error);
   }
 };
 
@@ -80,16 +97,32 @@ const handleSectionClick = (section: Chapter) => {
   }
 };
 
+const refetchChapters = () => {
+  fetchChapters();
+  emit('refetchChapters');
+};
+
 onMounted(() => {
   fetchChapters();
 });
 
-watch(() => props.activeSectionId, (newVal) => {
-  const activeChapterId = findChapterIdOfSection(newVal);
-  if (activeChapterId && !activeCollapse.value.includes(activeChapterId)) {
-    activeCollapse.value.push(activeChapterId);
+// 监听章节数据变化，自动展开所有章节
+watch(chapters, (newChapters) => {
+  if (newChapters && newChapters.length > 0) {
+    activeCollapse.value = newChapters.map(chapter => chapter.id);
+  }
+}, { deep: true, immediate: true });
+
+watch(() => props.activeSectionId, (newVal, oldVal) => {
+  if (newVal !== oldVal) {
+    fetchChapters(); // 当 sectionId 变化时，重新获取章节数据以更新已读状态
   }
 });
+
+defineExpose({
+  fetchChapters
+});
+
 </script>
 
 <style scoped>
@@ -98,12 +131,29 @@ watch(() => props.activeSectionId, (newVal) => {
   background-color: #fff;
   border-radius: 8px;
 }
-.navigator-title {
-  margin-top: 0;
+.navigator-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 16px;
+}
+.navigator-title {
+  margin: 0;
   font-size: 16px;
   font-weight: 600;
   color: #333;
+}
+.progress-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.progress-text {
+  font-size: 12px;
+  color: #909399;
+}
+.progress-bar {
+  width: 80px;
 }
 .chapter-collapse {
   border: none;
@@ -132,6 +182,7 @@ watch(() => props.activeSectionId, (newVal) => {
 
 .chapter-title {
   flex: 1;
+  margin-left: 8px;
 }
 
 .section-list {
@@ -166,14 +217,33 @@ watch(() => props.activeSectionId, (newVal) => {
   color: #409eff;
 }
 
-.completion-icon {
-  color: #909399;
+.completion-icon-chapter {
   font-size: 16px;
+}
+
+.completion-icon {
+  font-size: 16px;
+}
+
+.completion-icon.is-read, .completion-icon-chapter.is-read {
+  color: #67c23a;
+}
+
+.completion-icon-unread {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #e6a23c;
+  margin: 4px; /* to align with the icon */
 }
 
 .section-title {
   flex-grow: 1;
   font-size: 14px;
+}
+
+.section-item.is-read .section-title {
+  /* color: #909399; */ /* Optional: change color for read sections */
 }
 
 .arrow-icon {

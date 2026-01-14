@@ -60,3 +60,19 @@ class Chapter(models.Model):
         if self.parent:
             return f"{self.parent.title} - {self.title}"
         return f"{self.course.name} - {self.title}"
+
+class ChapterReadStatus(models.Model):
+    """
+    章节已读状态模型
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='read_chapters')
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name='read_by_users')
+    read_at = models.DateTimeField(auto_now_add=True, verbose_name='阅读时间')
+
+    class Meta:
+        unique_together = ('user', 'chapter')
+        verbose_name = '章节已读状态'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f"{self.user.username} read {self.chapter.title}"

@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from users.models import User
 from users.serializers import UserSerializer
-from .models import Course, CourseMaterial, Announcement, Chapter
+from .models import Course, CourseMaterial, Announcement, Chapter, ChapterReadStatus
 from .serializers import (
     CourseSerializer, CourseListSerializer, CourseMaterialSerializer, 
     AnnouncementSerializer, ChapterSerializer, ChapterWriteSerializer,
@@ -60,6 +60,31 @@ class ChapterViewSet(viewsets.ModelViewSet):
         """
         course = get_object_or_404(Course, pk=self.kwargs['course_pk'])
         serializer.save(course=course)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated, IsCourseMember])
+    def mark_as_read(self, request, pk=None, course_pk=None):
+        """
+        Mark a chapter as read for the current user.
+        """
+        chapter = self.get_object()
+        user = request.user
+
+        # We only mark "sections" (chapters with content) as read.
+        # Chapters (parent is None) are containers and their read status is derived.
+        if chapter.parent is None:
+            return Response({'detail': 'You can only mark sections as read.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # get_or_create is an atomic operation that prevents race conditions
+        # and ensures we don't create duplicate entries.
+        read_status, created = ChapterReadStatus.objects.get_or_create(
+            user=user,
+            chapter=chapter
+        )
+
+        if created:
+            return Response({'status': 'Chapter marked as read.'}, status=status.HTTP_201_CREATED)
+        else:
+            return Response({'status': 'Chapter was already marked as read.'}, status=status.HTTP_200_OK)
 
 class CourseViewSet(viewsets.ModelViewSet):
     """
@@ -367,11 +392,10 @@ class LearningRecordView(APIView):
                 'total': total_checkins,
                 'present': student_records.filter(status='present').count(),
                 'late': student_records.filter(status='late').count(),
-                'absent': total_checkins - student_records.exclude(status='absent').count(), # 缺勤 = 总数 - 非缺勤
+                'absent': total_checkins - student_records.exclude(status='absent').count(),
                 'sick_leave': student_records.filter(status='sick_leave').count(),
                 'personal_leave': student_records.filter(status='personal_leave').count(),
             }
-            # 出勤率 = (出勤 + 迟到) / 总数
             attendance_count = checkin_summary['present'] + checkin_summary['late']
             checkin_summary['attendance_rate'] = (attendance_count / total_checkins * 100) if total_checkins > 0 else 0
 
@@ -399,17 +423,23 @@ class LearningRecordView(APIView):
                 'reply_count': DiscussionReply.objects.filter(topic__course=course, author=student).count(),
             }
 
-            learning_records.append({
+            # 准备数据以供序列化器使用
+            record_data = {
                 'student_id': student.id,
                 'student_name': student.get_full_name() or student.username,
                 'checkin_summary': checkin_summary,
                 'assignment_summary': assignment_summary,
                 'exam_summary': exam_summary,
                 'discussion_summary': discussion_summary,
-            })
-        
-        # 注意：由于数据结构已更改，旧的 LearningRecordSerializer 可能不再适用
-        # 我们直接返回字典列表，DRF 会自动处理 JSON 序列化
+            }
+
+            # 实例化并使用序列化器
+            serializer = LearningRecordSerializer(
+                instance=record_data,
+                context={'course': course, 'user': student}
+            )
+            learning_records.append(serializer.data)
+
         return Response(learning_records)
 
 

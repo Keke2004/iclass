@@ -3,6 +3,11 @@
     <div class="header">
       <div class="header-left">
         <h3>课程目录</h3>
+        <div v-if="!isTeacher" class="progress-container">
+          <el-icon class="progress-icon"><Finished /></el-icon>
+          <span>已完成任务点: {{ completedTasks }} / {{ totalTasks }}</span>
+          <el-progress :percentage="progressPercentage" :stroke-width="10" class="progress-bar" />
+        </div>
       </div>
       <div class="header-right">
         <el-input
@@ -32,9 +37,10 @@
           </div>
         </template>
         <ul class="section-list">
-          <li v-for="(section, secIndex) in chapter.children" :key="section.id" class="section-item" @click="handleSectionClick(section)">
+          <li v-for="(section, secIndex) in chapter.children" :key="section.id" class="section-item" :class="{ 'is-read': section.is_read }" @click="handleSectionClick(section)">
             <div class="section-content">
-              <el-icon class="completion-icon"><CircleCheckFilled /></el-icon>
+              <el-icon v-if="section.is_read" class="completion-icon-read"><CircleCheckFilled /></el-icon>
+              <div v-else class="completion-icon-unread"></div>
               <span class="section-title" v-html="highlightText(`${chapter.originalIndex + 1}.${secIndex + 1} ${section.title}`, searchQuery)"></span>
             </div>
             <div v-if="isTeacher" class="node-actions">
@@ -76,11 +82,14 @@ import apiClient from '../../services/api';
 import { ElMessage, ElButton, ElDialog, ElForm, ElFormItem, ElInput, ElEmpty, ElPopconfirm, ElCollapse, ElCollapseItem, ElIcon } from 'element-plus';
 import { CircleCheckFilled } from '@element-plus/icons-vue';
 
+import { Finished } from '@element-plus/icons-vue';
+
 interface Chapter {
   id: number;
   title: string;
   parent?: number | null;
   children?: Chapter[];
+  is_read?: boolean;
 }
 
 const route = useRoute();
@@ -88,6 +97,8 @@ const router = useRouter();
 const courseId = computed(() => route.params.id as string);
 
 const chapters = ref<Chapter[]>([]);
+const totalTasks = ref(0);
+const completedTasks = ref(0);
 const searchQuery = ref('');
 const collapseRef = ref<CollapseInstance>();
 const dialogVisible = ref(false);
@@ -111,6 +122,10 @@ const dialogTitle = computed(() => {
 
 const userRole = localStorage.getItem('user_role');
 const isTeacher = computed(() => userRole === 'teacher');
+
+const progressPercentage = computed(() => {
+  return totalTasks.value > 0 ? (completedTasks.value / totalTasks.value) * 100 : 0;
+});
 
 const highlightText = (text: string, query: string) => {
   if (!query) {
@@ -163,8 +178,18 @@ watch(searchQuery, () => {
 
 const fetchChapters = async () => {
   try {
-    const response = await apiClient.get(`/courses/${courseId.value}/chapters/`);
-    chapters.value = response.data;
+    const [chaptersResponse, courseResponse] = await Promise.all([
+      apiClient.get(`/courses/${courseId.value}/chapters/`),
+      apiClient.get(`/courses/${courseId.value}/`)
+    ]);
+    chapters.value = chaptersResponse.data;
+    const course = courseResponse.data;
+
+    if (!isTeacher.value && course.progress) {
+      totalTasks.value = course.progress.total;
+      completedTasks.value = course.progress.completed;
+    }
+
     // 默认展开所有章
     nextTick(() => {
       if (collapseRef.value && chapters.value.length > 0) {
@@ -172,12 +197,26 @@ const fetchChapters = async () => {
       }
     });
   } catch (error) {
-    console.error('获取章节列表失败:', error);
+    console.error('获取章节列表或课程详情失败:', error);
     ElMessage.error('无法加载章节列表。');
   }
 };
 
+const markAsRead = async (sectionId: number) => {
+  try {
+    // The API call marks the section as read on the backend.
+    // The UI will be updated with the correct progress and read status
+    // the next time the component is loaded and fetchChapters is called.
+    await apiClient.post(`/courses/${courseId.value}/chapters/${sectionId}/mark_as_read/`);
+  } catch (err) {
+    console.error('标记已读失败:', err);
+  }
+};
+
 const handleSectionClick = (section: Chapter) => {
+  if (!isTeacher.value && !section.is_read) {
+    markAsRead(section.id);
+  }
   router.push({ name: 'section-detail', params: { id: courseId.value, sectionId: section.id } });
 };
 
@@ -244,10 +283,31 @@ const deleteChapter = async (chapterId: number) => {
 
 onMounted(() => {
   fetchChapters();
+  // 监听路由变化，当从详情页返回时刷新
+  window.addEventListener('focus', fetchChapters);
+});
+
+import { onUnmounted } from 'vue';
+onUnmounted(() => {
+  window.removeEventListener('focus', fetchChapters);
 });
 </script>
 
 <style scoped>
+.progress-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #606266;
+}
+.progress-icon {
+  color: #e6a23c; /* 橙色 */
+  font-size: 20px;
+}
+.progress-bar {
+  width: 120px;
+}
 .chapter-manager-container {
   padding: 24px;
   background-color: #f7f8fa; /* 参考背景色 */
@@ -256,15 +316,23 @@ onMounted(() => {
 
 .header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: space-between; /* 两端对齐 */
+  align-items: center; /* 垂直居中对齐 */
   margin-bottom: 20px;
 }
 
-.header-left h3 {
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header h3 {
   font-size: 18px;
   font-weight: 600;
   color: #333;
+  margin: 0; /* 移除默认的 margin */
+  flex-shrink: 0; /* 防止标题被压缩 */
 }
 
 .header-right {
@@ -348,9 +416,19 @@ onMounted(() => {
   gap: 12px;
 }
 
-.completion-icon {
+.completion-icon-read {
   color: #67c23a; /* 绿色对勾 */
   font-size: 18px;
+}
+.completion-icon-unread {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #e6a23c; /* 橙色 */
+  margin: 4px; /* 使其在视觉上与图标大小相当 */
+}
+.section-item.is-read .section-title {
+  color: #909399;
 }
 
 .section-title {

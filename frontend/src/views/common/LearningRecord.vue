@@ -64,6 +64,50 @@
         </div>
       </el-card>
 
+      <div class="card-row">
+        <el-card class="record-card">
+          <template #header><div class="card-header">章节任务点</div></template>
+          <div class="chapter-task-summary">
+            <div class="chapter-task-info">
+              <div class="chapter-task-counts">
+                <span class="completed-count">{{ record.chapter_summary.completed }}</span>
+                <span class="total-count">/ {{ record.chapter_summary.total }} 个</span>
+              </div>
+              <div class="chapter-task-label">完成进度</div>
+            </div>
+            <div class="chapter-task-progress">
+              <el-progress
+                type="circle"
+                :percentage="record.chapter_summary.completion_rate"
+                :width="80"
+                color="#5cb87a"
+              >
+                <template #default="{ percentage }">
+                  <div class="progress-text">
+                    <div class="progress-label-top">完成率</div>
+                    <div class="percentage-value">{{ Math.round(percentage) }}%</div>
+                  </div>
+                </template>
+              </el-progress>
+            </div>
+          </div>
+        </el-card>
+
+        <el-card class="record-card">
+          <template #header><div class="card-header">讨论</div></template>
+          <div class="discussion-stats">
+            <div class="stat-item">
+              <span class="stat-value">{{ record.discussion_summary.topic_count }}</span>
+              <span class="stat-label">发帖</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ record.discussion_summary.reply_count }}</span>
+              <span class="stat-label">回帖</span>
+            </div>
+          </div>
+        </el-card>
+      </div>
+
       <el-card class="record-card">
         <template #header><div class="card-header">学习任务</div></template>
         <div class="task-item-new">
@@ -79,20 +123,6 @@
             <el-progress :percentage="parseFloat(record.exam_summary.completion_rate.toFixed(2))" :show-text="false" color="#f56c6c" />
           </div>
           <span class="task-ratio">{{ record.exam_summary.completed }}/{{ record.exam_summary.total }}</span>
-        </div>
-      </el-card>
-
-      <el-card class="record-card">
-        <template #header><div class="card-header">讨论</div></template>
-        <div class="discussion-stats">
-          <div class="stat-item">
-            <span class="stat-value">{{ record.discussion_summary.topic_count }}</span>
-            <span class="stat-label">发帖</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">{{ record.discussion_summary.reply_count }}</span>
-            <span class="stat-label">回帖</span>
-          </div>
         </div>
       </el-card>
     </div>
@@ -127,6 +157,12 @@ interface TaskSummary {
   completion_rate: number;
 }
 
+interface ChapterSummary {
+  total: number;
+  completed: number;
+  completion_rate: number;
+}
+
 interface DiscussionSummary {
   topic_count: number;
   reply_count: number;
@@ -139,6 +175,7 @@ interface LearningRecord {
   assignment_summary: TaskSummary;
   exam_summary: TaskSummary;
   discussion_summary: DiscussionSummary;
+  chapter_summary: ChapterSummary;
 }
 
 interface Student {
@@ -339,5 +376,67 @@ onMounted(() => {
   white-space: nowrap;
   width: 50px; /* 固定宽度以便对齐 */
   text-align: right;
+}
+
+.chapter-task-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+}
+
+.chapter-task-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.chapter-task-counts {
+  display: flex;
+  align-items: baseline;
+}
+
+.completed-count {
+  font-size: 28px;
+  font-weight: bold;
+  color: #303133;
+}
+
+.total-count {
+  font-size: 14px;
+  color: #909399;
+  margin-left: 4px;
+}
+
+.chapter-task-label {
+  font-size: 14px;
+  color: #606266;
+  margin-top: 4px;
+}
+
+.progress-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-label-top {
+  font-size: 12px;
+  color: #909399;
+}
+
+.percentage-value {
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.card-row {
+  display: flex;
+  gap: 20px;
+}
+
+.card-row .record-card {
+  flex: 1;
 }
 </style>

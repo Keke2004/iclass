@@ -8,9 +8,18 @@
     </div>
     <div class="card-content">
       <h3 class="course-name">{{ course.name }}</h3>
-      <p class="teacher-name">{{ course.teacher?.username || '未知教师' }}</p>
-      <div class="card-footer">
-        <slot name="actions"></slot>
+      <!-- 学生或教师视图 -->
+      <div class="info-row">
+        <p class="teacher-name">{{ course.teacher?.username || '未知教师' }}</p>
+        <!-- 学生进度条 -->
+        <div v-if="userStore.isStudent" class="progress-container">
+          <el-progress :percentage="course.progress && course.progress.total > 0 ? Number(((course.progress.completed / course.progress.total) * 100).toFixed(2)) : 0" :text-inside="true" :stroke-width="20" status="success" />
+          <span class="progress-text">已完成 {{ course.progress?.completed || 0 }} / {{ course.progress?.total || 0 }}</span>
+        </div>
+        <!-- 教师操作按钮 -->
+        <div v-else class="actions-container">
+          <slot name="actions"></slot>
+        </div>
       </div>
     </div>
   </el-card>
@@ -18,6 +27,9 @@
 
 <script setup lang="ts">
 import { defineProps } from 'vue';
+import { useUserStore } from '@/stores/user';
+
+const userStore = useUserStore();
 
 // 这里的接口定义需要与父组件传递的数据保持一致
 interface Teacher {
@@ -32,6 +44,10 @@ interface Course {
   description: string;
   teacher: Teacher;
   cover?: string; // 封面图片是可选的
+  progress?: {
+    completed: number;
+    total: number;
+  };
 }
 
 defineProps<{
@@ -72,15 +88,42 @@ defineProps<{
   color: #303133;
 }
 
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 32px; /* 保证即使没有内容也有最小高度 */
+}
+
 .teacher-name {
   font-size: 14px;
   color: #909399;
-  margin: 0 0 16px;
+  margin: 0;
+  flex-shrink: 0; /* 防止教师名称被压缩 */
 }
 
-.card-footer {
+.progress-container {
   display: flex;
-  justify-content: flex-end;
   align-items: center;
+  flex-grow: 1;
+  margin-left: 10px;
+  min-width: 0; /* 允许在flex容器中缩小 */
+}
+
+.el-progress {
+  flex-grow: 1;
+  margin-right: 10px;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: #909399;
+  white-space: nowrap;
+}
+
+.actions-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 </style>
