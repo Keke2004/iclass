@@ -108,10 +108,11 @@ defineProps<{
   flex-grow: 1;
   margin-left: 10px;
   min-width: 0; /* 允许在flex容器中缩小 */
+  justify-content: flex-end;
 }
 
 .el-progress {
-  flex-grow: 1;
+  width: 170px;
   margin-right: 10px;
 }
 
