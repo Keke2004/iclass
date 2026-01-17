@@ -64,3 +64,9 @@ local_settings.py
 /frontend/.eslintcache
 /frontend/*.tsbuildinfo
 node_modules
+
+# =========================================
+# Sensitive files
+# =========================================
+# Contains API keys
+ai_assistant/views.py
