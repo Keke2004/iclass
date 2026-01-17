@@ -29,6 +29,7 @@ urlpatterns = [
     path("api/", include('logs.urls')),
     path("api/", include('interaction.urls')),
     path("api/", include('notifications.urls')),
+    path("api/ai/", include('ai_assistant.urls')),
 ]
 
 if settings.DEBUG:

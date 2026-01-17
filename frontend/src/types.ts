@@ -75,3 +75,16 @@ export interface DirectPasswordResetPayload {
   new_password1: string;
   new_password2: string;
 }
+
+export interface ChatSession {
+  id: number;
+  topic: string | null;
+  created_at: string;
+}
+
+export interface ChatMessage {
+  id: number;
+  content: string;
+  is_from_user: boolean;
+  created_at: string;
+}

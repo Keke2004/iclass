@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'interaction',
     'logs',
     'notifications',
+    'ai_assistant',
 ]
 
 MIDDLEWARE = [
@@ -174,4 +175,12 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+}
+
+# Cache settings
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "ai-assistant-cache",
+    }
 }

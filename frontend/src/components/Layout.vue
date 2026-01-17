@@ -49,6 +49,10 @@
                 <el-badge :value="unreadCount" :max="99" :hidden="unreadCount === 0" />
               </div>
             </el-menu-item>
+            <el-menu-item index="/ai-chat">
+              <el-icon><chat-dot-round /></el-icon>
+              <span>AI 助教</span>
+            </el-menu-item>
           </template>
 
           <!-- 教师菜单 -->
@@ -65,6 +69,10 @@
                 </span>
                 <el-badge :value="unreadCount" :max="99" :hidden="unreadCount === 0" />
               </div>
+            </el-menu-item>
+            <el-menu-item index="/ai-chat">
+              <el-icon><chat-dot-round /></el-icon>
+              <span>AI 助教</span>
             </el-menu-item>
           </template>
 
@@ -105,6 +113,7 @@ import {
   Tickets,
   Document,
   Bell,
+  ChatDotRound,
 } from '@element-plus/icons-vue';
 import api from '@/services/api';
 

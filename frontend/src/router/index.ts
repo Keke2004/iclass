@@ -72,6 +72,12 @@ const router = createRouter({
           component: () => import('@/views/common/InboxView.vue'),
           meta: { requiresAuth: true, roles: ['student', 'teacher'] }
         },
+        {
+          path: '/ai-chat',
+          name: 'ai-chat',
+          component: () => import('../views/common/AiChatView.vue'),
+          meta: { requiresAuth: true, roles: ['student', 'teacher'] }
+        },
         // Student Routes
         {
           path: '/student/courses',
