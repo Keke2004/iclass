@@ -27,7 +27,7 @@
           <p class="aside-username">{{ username }}</p>
         </div>
         <el-menu
-          :default-active="$route.path"
+          :default-active="activeMenu"
           class="el-menu-vertical-demo"
           router
           background-color="#34495E"
@@ -102,7 +102,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import { storeToRefs } from 'pinia';
 import {
@@ -118,7 +118,16 @@ import {
 import api from '@/services/api';
 
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
+
+const activeMenu = computed(() => {
+  // Keep the 'AI 助教' menu item active for any sub-path of /ai-chat
+  if (route.path.startsWith('/ai-chat')) {
+    return '/ai-chat';
+  }
+  return route.path;
+});
 
 // 从 Pinia store 获取用户信息
 const { user: storeUser, unreadCount } = storeToRefs(userStore);

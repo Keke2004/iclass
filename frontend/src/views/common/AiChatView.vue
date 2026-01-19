@@ -23,19 +23,21 @@
     <div class="ai-chat-container">
       <div class="chat-history-wrapper" ref="chatHistoryWrapper">
         <div class="chat-history">
-          <div v-for="message in messages" :key="message.id" 
-               class="message-container" 
-               :class="message.is_from_user ? 'user-container' : 'assistant-container'">
-            <div class="message" :class="message.is_from_user ? 'user' : 'assistant'">
-              <p v-if="message.is_from_user">{{ message.content }}</p>
-              <div v-else v-html="marked.parse(message.content)"></div>
-            </div>
-            <div v-if="!message.is_from_user" class="message-footer">
-              <button class="copy-message-btn" @click="copyToClipboard(message.content, $event.currentTarget)">
-                <el-icon><CopyDocument /></el-icon>
-              </button>
-              <div v-if="message.model" class="model-name">
-                {{ message.model }}
+          <div v-for="message in messages" :key="message.id"
+               class="message-wrapper"
+               :class="message.is_from_user ? 'user-wrapper' : 'assistant-wrapper'">
+            <div class="message-container">
+              <div class="message" :class="message.is_from_user ? 'user' : 'assistant'">
+                <p v-if="message.is_from_user">{{ message.content }}</p>
+                <div v-else v-html="marked.parse(message.content)"></div>
+              </div>
+              <div class="message-footer" :class="{ 'user-footer': message.is_from_user }">
+                <button class="copy-message-btn" @click="copyToClipboard(message.content, $event.currentTarget)">
+                  <el-icon><CopyDocument /></el-icon>
+                </button>
+                <div v-if="!message.is_from_user && message.model" class="model-name">
+                  {{ message.model }}
+                </div>
               </div>
             </div>
           </div>
@@ -59,7 +61,10 @@
             size="large"
           />
           <el-button @click="sendMessage" :disabled="isSending || !activeSessionId" type="primary" size="large">
-            {{ isSending ? '...' : '发送' }}
+            <span v-if="isSending" class="loading-dots">
+              <span>.</span><span>.</span><span>.</span>
+            </span>
+            <span v-else>发送</span>
           </el-button>
         </div>
       </div>
@@ -68,13 +73,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { marked } from 'marked';
 import api from '@/services/api';
 import type { ChatSession, ChatMessage } from '@/types';
 import { ElMessageBox } from 'element-plus';
 import { Delete, CopyDocument } from '@element-plus/icons-vue';
 
+const route = useRoute();
+const router = useRouter();
 const chatHistoryWrapper = ref<HTMLElement | null>(null);
 
 const copyToClipboard = async (text: string, button: EventTarget | null) => {
@@ -127,13 +135,24 @@ const models = ref([
   { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Meta Llama 3.3' },
   { id: 'mistralai/devstral-2512:free', name: 'Mistral Devstral 2 2512' },
 ]);
-const selectedModel = ref(models.value[0].id);
+const selectedModel = ref(localStorage.getItem('selectedApiModel') || models.value[0].id);
+
+watch(selectedModel, (newModelId) => {
+  localStorage.setItem('selectedApiModel', newModelId);
+});
 
 const fetchSessions = async () => {
   try {
     const response = await api.get('/ai/sessions/');
     sessions.value = response.data;
-    if (sessions.value.length > 0 && !activeSessionId.value) {
+    
+    const sessionIdFromUrl = Number(route.params.sessionId);
+
+    if (sessionIdFromUrl && sessions.value.some(s => s.id === sessionIdFromUrl)) {
+      // If a valid session ID is in the URL, select it
+      selectSession(sessionIdFromUrl, false); // Don't update URL again
+    } else if (sessions.value.length > 0 && !activeSessionId.value) {
+      // Otherwise, if no session is active, select the first one
       selectSession(sessions.value[0].id);
     }
   } catch (error) {
@@ -151,9 +170,12 @@ const fetchMessages = async (sessionId: number) => {
   }
 };
 
-const selectSession = (sessionId: number) => {
+const selectSession = (sessionId: number, updateUrl = true) => {
   activeSessionId.value = sessionId;
   fetchMessages(sessionId);
+  if (updateUrl) {
+    router.push({ name: 'ai-chat', params: { sessionId } });
+  }
 };
 
 const deleteSession = async (sessionId: number) => {
@@ -180,9 +202,10 @@ const deleteSession = async (sessionId: number) => {
         const newIndex = Math.max(0, deletedIndex - 1);
         selectSession(sessions.value[newIndex].id);
       } else {
-        // If no sessions left, clear the chat window
+        // If no sessions left, clear the chat window and URL
         activeSessionId.value = null;
         messages.value = [];
+        router.push({ name: 'ai-chat' });
       }
     }
 
@@ -199,8 +222,8 @@ const createNewSession = async () => {
     const response = await api.post('/ai/sessions/', {});
     const newSession = response.data;
     sessions.value.unshift(newSession);
-    activeSessionId.value = newSession.id;
-    messages.value = [];
+    // selectSession will handle the URL update
+    selectSession(newSession.id);
   } catch (error) {
     console.error('Error creating new session:', error);
   }
@@ -388,25 +411,30 @@ onMounted(() => {
   gap: 20px;
 }
 
+.message-wrapper {
+  display: flex;
+  width: 100%;
+}
+
+.message-wrapper.user-wrapper {
+  justify-content: flex-end;
+}
+
+.message-wrapper.assistant-wrapper {
+  justify-content: flex-start;
+}
+
 .message-container {
   display: flex;
   flex-direction: column;
-  gap: 4px; /* Adjust gap for vertical layout */
-  position: relative; /* Keep relative for positioning children if needed */
-}
-
-.message-container.user-container {
-  align-items: flex-end;
-}
-
-.message-container.assistant-container {
-  align-items: flex-start;
+  gap: 4px;
+  max-width: 75%;
+  position: relative;
 }
 
 .message {
   padding: 12px 18px;
   border-radius: 18px;
-  max-width: 75%;
   line-height: 1.6;
 }
 
@@ -550,13 +578,40 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
-  max-width: 75%; /* Match the message bubble's max-width */
-  padding-right: 15px;
+  padding: 0; /* Remove horizontal padding */
+}
+
+.message-footer.user-footer {
+  justify-content: flex-end;
 }
 
 .model-name {
   font-size: 0.75em;
   color: #909399;
+}
+
+.loading-dots span {
+  animation: blink 1.4s infinite both;
+  display: inline-block;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes blink {
+  0% {
+    opacity: 0.2;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+  }
 }
 </style>
