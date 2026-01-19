@@ -87,4 +87,5 @@ export interface ChatMessage {
   content: string;
   is_from_user: boolean;
   created_at: string;
+  model?: string;
 }

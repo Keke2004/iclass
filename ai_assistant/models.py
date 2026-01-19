@@ -14,6 +14,7 @@ class ChatMessage(models.Model):
     content = models.TextField()
     is_from_user = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    model = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return f"Message in Session {self.session.id} at {self.created_at}"

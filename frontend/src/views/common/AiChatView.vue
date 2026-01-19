@@ -30,9 +30,14 @@
               <p v-if="message.is_from_user">{{ message.content }}</p>
               <div v-else v-html="marked.parse(message.content)"></div>
             </div>
-            <button class="copy-message-btn" @click="copyToClipboard(message.content, $event.currentTarget)">
-              <el-icon><CopyDocument /></el-icon>
-            </button>
+            <div v-if="!message.is_from_user" class="message-footer">
+              <button class="copy-message-btn" @click="copyToClipboard(message.content, $event.currentTarget)">
+                <el-icon><CopyDocument /></el-icon>
+              </button>
+              <div v-if="message.model" class="model-name">
+                {{ message.model }}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -494,16 +499,10 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  visibility: hidden; /* Hide by default */
-  opacity: 0;
-  transition: opacity 0.2s, visibility 0.2s, background-color 0.2s;
+  opacity: 1;
+  transition: background-color 0.2s;
   color: var(--text-secondary);
   flex-shrink: 0;
-}
-
-.message-container:hover .copy-message-btn {
-  visibility: visible; /* Show on hover */
-  opacity: 1;
 }
 
 .copy-message-btn:hover {
@@ -531,16 +530,11 @@ onMounted(() => {
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
-  visibility: hidden; /* Hide by default */
-  opacity: 0;
+  opacity: 1;
   transition: opacity 0.2s, visibility 0.2s;
   z-index: 10;
 }
 
-.message.assistant :deep(.code-block-wrapper:hover .copy-code-btn) {
-  visibility: visible; /* Show on hover */
-  opacity: 1;
-}
 
 .message.assistant :deep(.copy-code-btn:hover) {
   background: rgba(255, 255, 255, 0.2);
@@ -550,5 +544,19 @@ onMounted(() => {
   background: #67c23a;
   border-color: #67c23a;
   color: white;
+}
+
+.message-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 75%; /* Match the message bubble's max-width */
+  padding-right: 15px;
+}
+
+.model-name {
+  font-size: 0.75em;
+  color: #909399;
 }
 </style>
