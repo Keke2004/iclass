@@ -20,42 +20,44 @@
       </div>
     </div>
 
-    <el-collapse v-if="filteredChapters.length > 0" ref="collapseRef" class="chapter-collapse">
-      <el-collapse-item v-for="(chapter, index) in filteredChapters" :key="chapter.id" :name="chapter.id.toString()">
-        <template #title>
-          <div class="chapter-header-content">
-            <span class="chapter-title" v-html="highlightText(`第 ${chapter.originalIndex + 1} 章 ${chapter.title}`, searchQuery)"></span>
-            <span v-if="isTeacher" class="node-actions">
-              <el-button type="primary" link size="small" @click.stop="openAddChapterDialog(chapter)">添加节</el-button>
-              <el-button type="primary" link size="small" @click.stop="openEditChapterDialog(chapter)">编辑</el-button>
-              <el-popconfirm title="确定要删除吗？如果删除章，其下的所有节也会被删除。" @confirm.stop="deleteChapter(chapter.id)">
-                <template #reference>
-                  <el-button type="danger" link size="small" @click.stop>删除</el-button>
-                </template>
-              </el-popconfirm>
-            </span>
-          </div>
-        </template>
-        <ul class="section-list">
-          <li v-for="(section, secIndex) in chapter.children" :key="section.id" class="section-item" :class="{ 'is-read': section.is_read }" @click="handleSectionClick(section)">
-            <div class="section-content">
-              <el-icon v-if="section.is_read" class="completion-icon-read"><CircleCheckFilled /></el-icon>
-              <div v-else class="completion-icon-unread"></div>
-              <span class="section-title" v-html="highlightText(`${chapter.originalIndex + 1}.${secIndex + 1} ${section.title}`, searchQuery)"></span>
+    <div class="content-wrapper">
+      <el-collapse v-if="filteredChapters.length > 0" ref="collapseRef" class="chapter-collapse">
+        <el-collapse-item v-for="(chapter, index) in filteredChapters" :key="chapter.id" :name="chapter.id.toString()">
+          <template #title>
+            <div class="chapter-header-content">
+              <span class="chapter-title" v-html="highlightText(`第 ${chapter.originalIndex + 1} 章 ${chapter.title}`, searchQuery)"></span>
+              <span v-if="isTeacher" class="node-actions">
+                <el-button type="primary" link size="small" @click.stop="openAddChapterDialog(chapter)">添加节</el-button>
+                <el-button type="primary" link size="small" @click.stop="openEditChapterDialog(chapter)">编辑</el-button>
+                <el-popconfirm title="确定要删除吗？如果删除章，其下的所有节也会被删除。" @confirm.stop="deleteChapter(chapter.id)">
+                  <template #reference>
+                    <el-button type="danger" link size="small" @click.stop>删除</el-button>
+                  </template>
+                </el-popconfirm>
+              </span>
             </div>
-            <div v-if="isTeacher" class="node-actions">
-              <el-button type="primary" link size="small" @click.stop="openEditChapterDialog(section)">编辑</el-button>
-              <el-popconfirm title="确定要删除吗？" @confirm.stop="deleteChapter(section.id)">
-                <template #reference>
-                  <el-button type="danger" link size="small" @click.stop>删除</el-button>
-                </template>
-              </el-popconfirm>
-            </div>
-          </li>
-        </ul>
-      </el-collapse-item>
-    </el-collapse>
-    <el-empty v-else description="暂无章节内容"></el-empty>
+          </template>
+          <ul class="section-list">
+            <li v-for="(section, secIndex) in chapter.children" :key="section.id" class="section-item" :class="{ 'is-read': section.is_read }" @click="handleSectionClick(section)">
+              <div class="section-content">
+                <el-icon v-if="section.is_read" class="completion-icon-read"><CircleCheckFilled /></el-icon>
+                <div v-else class="completion-icon-unread" :class="{ 'teacher-view': isTeacher }"></div>
+                <span class="section-title" v-html="highlightText(`${chapter.originalIndex + 1}.${secIndex + 1} ${section.title}`, searchQuery)"></span>
+              </div>
+              <div v-if="isTeacher" class="node-actions">
+                <el-button type="primary" link size="small" @click.stop="openEditChapterDialog(section)">编辑</el-button>
+                <el-popconfirm title="确定要删除吗？" @confirm.stop="deleteChapter(section.id)">
+                  <template #reference>
+                    <el-button type="danger" link size="small" @click.stop>删除</el-button>
+                  </template>
+                </el-popconfirm>
+              </div>
+            </li>
+          </ul>
+        </el-collapse-item>
+      </el-collapse>
+      <el-empty v-else description="暂无章节内容"></el-empty>
+    </div>
 
     <!-- 添加/编辑标题对话框 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px">
@@ -309,9 +311,11 @@ onUnmounted(() => {
   width: 120px;
 }
 .chapter-manager-container {
+  display: flex;
+  flex-direction: column;
   padding: 24px;
-  background-color: #f7f8fa; /* 参考背景色 */
-  height: 100%;
+  background-color: #f7f8fa;
+  height: calc(100vh - 150px); /* 减去顶部导航和一些边距 */
 }
 
 .header {
@@ -343,6 +347,11 @@ onUnmounted(() => {
 
 .search-input {
   width: 240px;
+}
+
+.content-wrapper {
+  flex-grow: 1;
+  overflow-y: auto;
 }
 
 .chapter-collapse {
@@ -426,6 +435,9 @@ onUnmounted(() => {
   border-radius: 50%;
   background-color: #e6a23c; /* 橙色 */
   margin: 4px; /* 使其在视觉上与图标大小相当 */
+}
+.completion-icon-unread.teacher-view {
+  background-color: #409eff; /* 蓝色 */
 }
 .section-item.is-read .section-title {
   color: #909399;

@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { marked } from 'marked';
 import api from '@/services/api';
@@ -84,6 +84,14 @@ import { Delete, CopyDocument } from '@element-plus/icons-vue';
 const route = useRoute();
 const router = useRouter();
 const chatHistoryWrapper = ref<HTMLElement | null>(null);
+
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (chatHistoryWrapper.value) {
+      chatHistoryWrapper.value.scrollTop = chatHistoryWrapper.value.scrollHeight;
+    }
+  });
+};
 
 const copyToClipboard = async (text: string, button: EventTarget | null) => {
   if (!button || !(button instanceof HTMLElement)) return;
@@ -112,10 +120,7 @@ const setupMarked = () => {
 
   renderer.code = (code, lang, escaped) => {
     const rawCodeHtml = originalCodeRenderer.call(renderer, code, lang, escaped);
-    // Ensure code is a string and properly escape it for the data attribute
-    const safeCode = String(code || '');
-    const escapedCode = safeCode.replace(/'/g, '&#39;').replace(/"/g, '"');
-    const copyButtonHtml = `<button class="copy-code-btn" data-code='${escapedCode}'>复制</button>`;
+    const copyButtonHtml = `<button class="copy-code-btn">复制</button>`;
     return `<div class="code-block-wrapper">${copyButtonHtml}${rawCodeHtml}</div>`;
   };
 
@@ -164,6 +169,7 @@ const fetchMessages = async (sessionId: number) => {
   try {
     const response = await api.get(`/ai/sessions/${sessionId}/messages/`);
     messages.value = response.data;
+    scrollToBottom();
   } catch (error) {
     console.error('Error fetching messages:', error);
     messages.value = [];
@@ -229,6 +235,20 @@ const createNewSession = async () => {
   }
 };
 
+const typeMessage = (message: ChatMessage, text: string, speed: number = 20) => {
+  let i = 0;
+  message.content = ''; // Start with empty content
+
+  function type() {
+    if (i < text.length) {
+      message.content += text.charAt(i);
+      i++;
+      setTimeout(type, speed);
+    }
+  }
+  type();
+};
+
 const sendMessage = async () => {
   if (!newMessage.value.trim() || isSending.value || !activeSessionId.value) return;
 
@@ -236,7 +256,7 @@ const sendMessage = async () => {
 
   const userMessageContent = newMessage.value;
   const currentSessionId = activeSessionId.value;
-  
+
   // Add user message to UI immediately
   messages.value.push({
     id: Date.now(), // Temporary ID
@@ -247,29 +267,56 @@ const sendMessage = async () => {
 
   newMessage.value = '';
 
+  // Add a placeholder for the assistant's message
+  const assistantMessagePlaceholder: ChatMessage = {
+    id: Date.now() + 1, // Temporary ID
+    content: '', // Empty content initially
+    is_from_user: false,
+    created_at: new Date().toISOString(),
+    model: selectedModel.value
+  };
+  messages.value.push(assistantMessagePlaceholder);
+
   try {
     const response = await api.post(`/ai/sessions/${currentSessionId}/messages/`, { content: userMessageContent, model: selectedModel.value });
     const assistantMessage = response.data;
-    messages.value.push(assistantMessage);
 
-    // If the session was new, it now has a topic, so refresh the session list
+    // Find the placeholder and update it with the real message, then start typing
+    const placeholderIndex = messages.value.findIndex(m => m.id === assistantMessagePlaceholder.id);
+    if (placeholderIndex !== -1) {
+      // Replace placeholder with the final message object
+      messages.value[placeholderIndex] = assistantMessage;
+      // Pass the reactive message object from the array to the typing function
+      typeMessage(messages.value[placeholderIndex], assistantMessage.content);
+    }
+
+    // If the session was new, it now has a topic, so refresh the session list.
+    // Otherwise, move the existing session to the top.
     const activeSession = sessions.value.find(s => s.id === currentSessionId);
     if (activeSession && !activeSession.topic) {
-        fetchSessions();
+        fetchSessions(); // This will fetch the updated list with the new topic, and it should be at the top.
+    } else {
+        const sessionIndex = sessions.value.findIndex(s => s.id === currentSessionId);
+        if (sessionIndex > 0) {
+            const [sessionToMove] = sessions.value.splice(sessionIndex, 1);
+            sessions.value.unshift(sessionToMove);
+        }
     }
 
   } catch (error) {
     console.error('Error fetching AI response:', error);
-    messages.value.push({
-      id: Date.now(),
-      content: '抱歉，AI 助教当前不可用。请稍后再试。',
-      is_from_user: false,
-      created_at: new Date().toISOString(),
-    });
+    const placeholderIndex = messages.value.findIndex(m => m.id === assistantMessagePlaceholder.id);
+    if (placeholderIndex !== -1) {
+      messages.value[placeholderIndex].content = '抱歉，AI 助教当前不可用。请稍后再试。';
+    }
   } finally {
     isSending.value = false;
   }
 };
+
+watch(messages, () => {
+  scrollToBottom();
+}, { deep: true });
 
 onMounted(() => {
   setupMarked();
@@ -279,8 +326,9 @@ onMounted(() => {
     chatHistoryWrapper.value.addEventListener('click', (event) => {
       const target = event.target as HTMLElement;
       if (target && target.classList.contains('copy-code-btn')) {
-        const code = target.getAttribute('data-code');
-        if (code) {
+        const codeBlock = target.nextElementSibling;
+        if (codeBlock && codeBlock.tagName === 'PRE') {
+          const code = (codeBlock as HTMLElement).innerText;
           copyToClipboard(code, target);
         }
       }
@@ -402,7 +450,13 @@ onMounted(() => {
   flex-grow: 1;
   overflow-y: auto;
   margin-bottom: 20px;
-  padding-right: 10px; /* For scrollbar */
+  /* For scrollbar */
+  scrollbar-width: none; /* For Firefox */
+  -ms-overflow-style: none;  /* For IE and Edge */
+}
+
+.chat-history-wrapper::-webkit-scrollbar {
+  display: none; /* For Chrome, Safari, and Opera */
 }
 
 .chat-history {

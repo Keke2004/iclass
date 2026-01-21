@@ -21,7 +21,7 @@
             @click="handleSectionClick(section)"
           >
             <el-icon v-if="section.is_read" class="completion-icon is-read"><SuccessFilled /></el-icon>
-            <span v-else class="completion-icon-unread"></span>
+            <span v-else class="completion-icon-unread" :class="{ 'teacher-view': userStore.isTeacher }"></span>
             <span class="section-title">{{ `${index + 1}.${secIndex + 1} ${section.title}` }}</span>
           </li>
         </ul>
@@ -235,6 +235,10 @@ defineExpose({
   border-radius: 50%;
   background-color: #e6a23c;
   margin: 4px; /* to align with the icon */
+}
+
+.completion-icon-unread.teacher-view {
+  background-color: #409eff; /* 蓝色 */
 }
 
 .section-title {
