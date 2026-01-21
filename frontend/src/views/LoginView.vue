@@ -18,6 +18,7 @@
               placeholder="请输入用户名"
               size="large"
               :prefix-icon="User"
+              autocomplete="username"
             />
           </el-form-item>
           <el-form-item label="密码" prop="password">
@@ -28,6 +29,7 @@
               show-password
               size="large"
               :prefix-icon="Lock"
+              autocomplete="current-password"
             />
           </el-form-item>
           <el-form-item label="角色" prop="role">
@@ -70,6 +72,7 @@ const loginForm = reactive({
   role: 'student',
 });
 
+
 const loginRules = reactive<FormRules>({
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
@@ -89,6 +92,7 @@ const handleLogin = async () => {
         const role = loginForm.role;
         localStorage.setItem('user_role', role);
         localStorage.setItem('username', loginForm.username); // 保存用户名
+
 
         apiClient.defaults.headers.common['Authorization'] = `Bearer ${access}`;
 
@@ -261,5 +265,19 @@ const handleLogin = async () => {
 
 .extra-links .el-link:hover {
   color: #409eff;
+}
+
+/* 覆盖浏览器自动填充样式 */
+.login-form :deep(input:-webkit-autofill) {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important; /* 使用白色背景覆盖默认背景 */
+  -webkit-text-fill-color: #606266 !important; /* 设置文字颜色以匹配正常输入 */
+  transition: background-color 5000s ease-in-out 0s; /* 延迟浏览器样式更改的技巧 */
+}
+
+.login-form :deep(input:-webkit-autofill:hover),
+.login-form :deep(input:-webkit-autofill:focus),
+.login-form :deep(input:-webkit-autofill:active) {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+  -webkit-text-fill-color: #606266 !important;
 }
 </style>
