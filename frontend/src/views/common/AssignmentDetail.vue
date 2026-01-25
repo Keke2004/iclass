@@ -755,8 +755,9 @@ const submitAssignment = async () => {
 }
 
 .question-nav-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 40px);
+  justify-content: space-between;
   gap: 10px;
 }
 
@@ -765,6 +766,7 @@ const submitAssignment = async () => {
   height: 40px;
   padding: 0;
   min-width: 40px;
+  margin: 0; /* Let gap handle spacing */
 }
 
 .choice-radio-group {
