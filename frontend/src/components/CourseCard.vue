@@ -41,7 +41,7 @@ interface Teacher {
 interface Course {
   id: number;
   name: string;
-  description: string;
+  description?: string;
   teacher: Teacher;
   cover?: string; // 封面图片是可选的
   progress?: {

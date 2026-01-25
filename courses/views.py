@@ -244,26 +244,19 @@ class CourseMaterialViewSet(viewsets.ModelViewSet):
     @xframe_options_exempt
     def download(self, request, pk=None, course_pk=None):
         """
-        提供文件下载。
-        在开发环境中直接提供文件，在生产环境中使用 X-Accel-Redirect。
+        提供文件下载或预览。
         """
         material = self.get_object()
-        file_handle = material.file
-
-        if settings.DEBUG:
-            # 在开发环境中，直接使用 FileResponse 发送文件
-            try:
-                # 使用 material.file.path 获取绝对路径，并设置为 inline 以便预览
-                return FileResponse(open(material.file.path, 'rb'), as_attachment=False)
-            except FileNotFoundError:
-                return Response({"detail": "文件未找到。"}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            # 在生产环境中，继续使用 X-Accel-Redirect 以获得高性能
-            response = Response(status=status.HTTP_200_OK)
-            # Content-Type 将由 Nginx 设置
-            response['Content-Disposition'] = f'attachment; filename="{material.name}"'
-            response['X-Accel-Redirect'] = file_handle.url
-            return response
+        
+        try:
+            # 直接使用 FileResponse 发送文件，以便浏览器可以预览
+            # as_attachment=False 建议浏览器内联显示（预览）
+            return FileResponse(open(material.file.path, 'rb'), as_attachment=False)
+        except FileNotFoundError:
+            return Response({"detail": "文件未找到。"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            # 捕获其他潜在错误
+            return Response({"detail": f"处理文件时出错: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['delete'], url_path='bulk_delete')
     def bulk_delete(self, request, course_pk=None):

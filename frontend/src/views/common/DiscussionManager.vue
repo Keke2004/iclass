@@ -125,12 +125,14 @@ const isTeacher = computed(() => currentUser.value?.role === 'teacher');
 
 const showCreateDialog = ref(false);
 
+type FilterKey = 'all' | 'my-posts' | 'my-replies';
+
 const filter = ref({
   dateRange: null as [Date, Date] | null,
   search: ''
 });
-const activeFilter = ref('all');
-const filterTitles = {
+const activeFilter = ref<FilterKey>('all');
+const filterTitles: Record<FilterKey, string> = {
   all: '全部话题',
   'my-posts': '我发布的',
   'my-replies': '我回复的'
@@ -184,7 +186,7 @@ const fetchCurrentUser = async () => {
 };
 
 const handleFilterChange = (index: string) => {
-  activeFilter.value = index;
+  activeFilter.value = index as FilterKey;
 };
 
 const fetchTopics = async () => {
@@ -197,10 +199,17 @@ const fetchTopics = async () => {
         params.append('search', filter.value.search);
       }
       if (filter.value.dateRange) {
-        params.append('start_date', filter.value.dateRange[0].toISOString().split('T')[0]);
+        const startDateStr = filter.value.dateRange[0].toISOString().split('T')[0];
+        if (startDateStr) {
+          params.append('start_date', startDateStr);
+        }
+        
         const endDate = new Date(filter.value.dateRange[1]);
         endDate.setDate(endDate.getDate() + 1); // Backend range is exclusive on end date
-        params.append('end_date', endDate.toISOString().split('T')[0]);
+        const endDateStr = endDate.toISOString().split('T')[0];
+        if (endDateStr) {
+          params.append('end_date', endDateStr);
+        }
       }
       response = await apiClient.get(`/courses/${courseId}/discussions/`, { params });
       allTopics.value = response.data;

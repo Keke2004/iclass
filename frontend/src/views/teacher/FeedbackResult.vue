@@ -72,17 +72,18 @@ import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import apiClient from '../../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import type { QuestionnaireDetail, FeedbackResponse, FeedbackStudentStatus, FeedbackQuestion } from '../../types';
 
 const route = useRoute();
 const router = useRouter();
-const questionnaire = ref<any>(null);
+const questionnaire = ref<QuestionnaireDetail | null>(null);
 const courseId = route.params.id;
 const feedbackId = route.params.feedbackId;
 
-const selectedResponse = ref<any>(null);
+const selectedResponse = ref<FeedbackResponse | null>(null);
 
 const submittedCount = computed(() => {
-  return questionnaire.value?.student_statuses.filter(s => s.status === 'submitted').length || 0;
+  return questionnaire.value?.student_statuses.filter((s: FeedbackStudentStatus) => s.status === 'submitted').length || 0;
 });
 
 const totalStudents = computed(() => {
@@ -100,21 +101,21 @@ const fetchQuestionnaireDetail = async () => {
 };
 
 const getQuestionText = (questionId: number) => {
-  const question = questionnaire.value?.questions.find(q => q.id === questionId);
+  const question = questionnaire.value?.questions.find((q: FeedbackQuestion) => q.id === questionId);
   return question ? question.text : '未知问题';
 };
 
 const getQuestionType = (questionId: number) => {
-  const question = questionnaire.value?.questions.find(q => q.id === questionId);
+  const question = questionnaire.value?.questions.find((q: FeedbackQuestion) => q.id === questionId);
   return question ? question.question_type : 'text';
 };
 
-const viewResponse = (response: any) => {
+const viewResponse = (response: FeedbackResponse) => {
   selectedResponse.value = response;
 };
 
-const handleRowClick = (row: any) => {
-  if (row.status === 'submitted') {
+const handleRowClick = (row: FeedbackStudentStatus) => {
+  if (row.status === 'submitted' && row.response) {
     if (selectedResponse.value && selectedResponse.value.id === row.response.id) {
       selectedResponse.value = null;
     } else {
@@ -123,7 +124,7 @@ const handleRowClick = (row: any) => {
   }
 };
 
-const tableRowClassName = ({ row }) => {
+const tableRowClassName = ({ row }: { row: FeedbackStudentStatus }) => {
   if (row.status === 'submitted') {
     return 'clickable-row';
   }

@@ -149,6 +149,7 @@ const form = ref({
   description: '',
   due_date: '',
   questions: [] as any[],
+  course: null as number | null,
 });
 
 const rules = reactive({

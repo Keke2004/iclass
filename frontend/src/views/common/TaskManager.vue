@@ -19,7 +19,7 @@
                 <div class="task-icon">{{ getTaskTypeName(task.task_type) }}</div>
               </div>
               <div class="task-title">{{ getTaskTitle(task) }}</div>
-              <div class="task-time">开始时间: {{ formatTime(task.start_time || task.created_at) }}</div>
+              <div class="task-time">开始时间: {{ formatTime('start_time' in task ? task.start_time : task.created_at) }}</div>
             </div>
           </div>
         </div>
@@ -34,7 +34,7 @@
                 <div class="task-icon">{{ getTaskTypeName(task.task_type) }}</div>
               </div>
               <div class="task-title">{{ getTaskTitle(task) }}</div>
-              <div class="task-time">结束时间: {{ formatTime(task.end_time || task.created_at) }}</div>
+              <div class="task-time">结束时间: {{ formatTime('end_time' in task ? task.end_time : task.created_at) }}</div>
             </div>
           </div>
           </div>
@@ -221,7 +221,8 @@ const handleTaskClick = (task: Task) => {
   }
 };
 
-const formatTime = (time: string) => {
+const formatTime = (time: string | null | undefined) => {
+  if (!time) return '未知';
   return new Date(time).toLocaleString();
 };
 

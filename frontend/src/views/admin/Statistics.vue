@@ -42,8 +42,8 @@ onMounted(async () => {
           trigger: 'item'
         },
         legend: {
-          orient: 'vertical',
-          left: 'left'
+          orient: 'horizontal',
+          bottom: 'bottom'
         },
         series: [
           {
@@ -89,8 +89,8 @@ onMounted(async () => {
           trigger: 'item'
         },
         legend: {
-          orient: 'vertical',
-          left: 'left'
+          orient: 'horizontal',
+          bottom: 'bottom'
         },
         series: [
           {
@@ -138,10 +138,14 @@ h1 {
 .content-wrapper {
   flex-grow: 1;
   overflow-y: auto;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
 }
 
 .chart-container {
   margin-bottom: 30px;
   height: 400px; /* Ensure the container has a fixed height */
+  width: 49%;
 }
 </style>

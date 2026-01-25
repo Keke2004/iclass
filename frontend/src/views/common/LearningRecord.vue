@@ -208,7 +208,7 @@ const fetchLearningRecords = async (studentId: number | null = null) => {
     
     const response = await apiClient.get<LearningRecord[]>(url);
     
-    if (response.data && response.data.length > 0) {
+    if (response.data && response.data[0]) {
       record.value = response.data[0];
     } else if (isTeacher.value && studentId) {
       error.value = '未找到该学生的学习记录。';

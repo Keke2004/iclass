@@ -38,13 +38,13 @@ const startAnimation = () => {
   animationFinished.value = false;
   pickerInterval = window.setInterval(() => {
     const randomIndex = Math.floor(Math.random() * props.students.length);
-    currentStudentName.value = props.students[randomIndex].username;
+    currentStudentName.value = props.students[randomIndex]?.username ?? '未知学生';
   }, 100); // Switch names every 100ms
 
   finishTimeout = window.setTimeout(() => {
     clearInterval(pickerInterval);
     if (props.selectedStudent) {
-      currentStudentName.value = props.selectedStudent.username;
+      currentStudentName.value = props.selectedStudent.username ?? '未知学生';
     }
     animationFinished.value = true;
     setTimeout(() => emit('finished'), 2000); // Wait 2 seconds before closing

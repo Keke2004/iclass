@@ -135,7 +135,6 @@ const handleLogin = async () => {
       }
     } else {
       console.log('error submit!');
-      return false;
     }
   });
 };

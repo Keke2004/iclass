@@ -10,20 +10,22 @@
       ></el-input>
     </div>
 
-    <div v-if="loading" class="loading-state">
-      <p>正在加载课程...</p>
-    </div>
+    <div class="course-grid-wrapper">
+      <div v-if="loading" class="loading-state">
+        <p>正在加载课程...</p>
+      </div>
 
-    <div v-else-if="filteredCourses.length === 0" class="empty-state">
-      <p>没有找到匹配的课程。</p>
-    </div>
+      <div v-else-if="filteredCourses.length === 0" class="empty-state">
+        <p>没有找到匹配的课程。</p>
+      </div>
 
-    <el-row :gutter="20" v-else>
-      <el-col :span="8" v-for="course in filteredCourses" :key="course.id">
-        <course-card :course="course" @click="navigateToCourse(course.id)">
-        </course-card>
-      </el-col>
-    </el-row>
+      <el-row :gutter="20" v-else>
+        <el-col :span="8" v-for="course in filteredCourses" :key="course.id">
+          <course-card :course="course" @click="navigateToCourse(course.id)">
+          </course-card>
+        </el-col>
+      </el-row>
+    </div>
   </div>
 </template>
 
@@ -84,13 +86,27 @@ onMounted(() => {
 
 <style scoped>
 .course-list-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
   padding: 20px;
+  box-sizing: border-box;
+}
+.course-grid-wrapper {
+  flex-grow: 1;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+.course-grid-wrapper::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
 }
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  flex-shrink: 0;
 }
 .loading-state, .empty-state {
   text-align: center;

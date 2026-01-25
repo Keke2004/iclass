@@ -157,6 +157,7 @@ const form = ref({
   end_time: '',
   time_limit: 60,
   questions: [] as any[],
+  course: null as number | null,
 });
 
 const rules = reactive({

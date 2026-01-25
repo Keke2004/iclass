@@ -28,11 +28,12 @@ import { useRouter, useRoute } from 'vue-router';
 import apiClient from '../../services/api';
 import { useUserStore } from '../../stores/user';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import type { Questionnaire } from '../../types';
 
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
-const questionnaires = ref([]);
+const questionnaires = ref<Questionnaire[]>([]);
 const courseId = computed(() => route.params.id as string);
 const isTeacher = computed(() => userStore.isTeacher);
 
@@ -52,7 +53,7 @@ const createQuestionnaire = () => {
   router.push({ name: 'course-feedback-create', params: { id: courseId.value } });
 };
 
-const handleFeedbackClick = (questionnaire: any) => {
+const handleFeedbackClick = (questionnaire: Questionnaire) => {
   if (isTeacher.value) {
     router.push({ name: 'course-feedback-results', params: { id: courseId.value, feedbackId: questionnaire.id } });
   } else {

@@ -1,5 +1,5 @@
 <template>
-  <div class="exam-detail-container" v-if="!loading">
+  <div class="exam-detail-container" v-if="!loading && exam">
     <!-- Header -->
     <el-card class="page-header-card">
       <div class="header-content">
@@ -8,12 +8,12 @@
           <div class="header-meta">
             <span>题目: {{ exam.questions?.length || 0 }}</span>
             <span>总分: {{ totalPoints }}</span>
-            <span v-if="isStudent && isGraded">作答时间: {{ formatDate(submission.submitted_at) }}</span>
+            <span v-if="isStudent && isGraded && submission">作答时间: {{ formatDate(submission.submitted_at) }}</span>
             <span v-else>截止时间: {{ formatDate(exam.end_time) }}</span>
           </div>
         </div>
         <div class="header-right" v-if="isStudent">
-          <div v-if="isGraded" class="score-display">
+          <div v-if="isGraded && submission" class="score-display">
             <span class="score-label">得分</span>
             <span class="score-value">{{ submission.grade }}</span>
           </div>
@@ -129,9 +129,9 @@
                     </div>
                   </div>
 
-                  <div class="grading-area">
+                  <div class="grading-area" v-if="getAnswerForQuestion(question.id)">
                     <span>打分:</span>
-                    <el-input-number v-model="gradingScores[getAnswerForQuestion(question.id).id]" :min="0" :max="question.points" size="small" />
+                    <el-input-number v-model="gradingScores[getAnswerForQuestion(question.id)!.id]" :min="0" :max="question.points" size="small" />
                   </div>
                 </div>
               </div>
@@ -163,7 +163,7 @@
               {{ index + 1 }}
             </el-button>
           </div>
-           <div v-if="isGraded" class="sidebar-summary">
+           <div v-if="isGraded && submission" class="sidebar-summary">
             <h4>考试总览</h4>
             <p>最终得分: {{ submission.grade }} / {{ totalPoints }}</p>
             <h4>教师评语</h4>
@@ -203,28 +203,29 @@ import { useRoute, useRouter } from 'vue-router';
 import api from '@/services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { CircleCheckFilled, CircleCloseFilled } from '@element-plus/icons-vue';
+import type { Exam, ExamSubmission, Question, Answer, QuestionChoice, StudentSubmissionStatus } from '@/types';
 
 const route = useRoute();
 const router = useRouter();
 const loading = ref(true);
-const exam = ref<any>(null);
+const exam = ref<Exam | null>(null);
 const userRole = localStorage.getItem('user_role');
 const examId = route.params.id;
 
 // For Student
-const submission = ref<any>(null);
-const studentAnswers = ref<any>({});
+const submission = ref<ExamSubmission | null>(null);
+const studentAnswers = ref<{ [key: number]: string | string[] }>({});
 const isSubmitting = ref(false);
 
 // For Teacher
-const allSubmissions = ref<any[]>([]); // This will be populated from exam.student_submissions
-const selectedSubmission = ref<any>(null);
-const gradingScores = ref<any>({});
+const allSubmissions = ref<StudentSubmissionStatus[]>([]); // This will be populated from exam.student_submissions
+const selectedSubmission = ref<ExamSubmission | null>(null);
+const gradingScores = ref<{ [key: number]: number }>({});
 const gradingFeedback = ref('');
 
 // For Timer
 const remainingTime = ref(0);
-const timer = ref<any>(null);
+const timer = ref<number | null>(null);
 
 onMounted(async () => {
   await fetchData();
@@ -236,15 +237,23 @@ async function fetchData() {
     const examRes = await api.get(`/exams/${examId}/`);
     exam.value = examRes.data;
 
+    if (!exam.value) {
+      ElMessage.error('无法加载考试，可能是无效的ID。');
+      return;
+    }
+
     if (userRole === 'student') {
       const submissionRes = await api.get(`/exam-submissions/?exam=${examId}`);
       if (submissionRes.data && submissionRes.data.length > 0) {
         submission.value = submissionRes.data[0];
+      }
+
+      if (submission.value) {
         const answersFromServer = submission.value.answers;
-        const questionMap = new Map(exam.value.questions.map((q: any) => [q.id, q]));
+        const questionMap = new Map(exam.value.questions.map((q: Question) => [q.id, q]));
 
         // Initialize all answers first
-        exam.value.questions.forEach((q: any) => {
+        exam.value.questions.forEach((q: Question) => {
           if (q.question_type === 'multiple_choice') {
             studentAnswers.value[q.id] = [];
           } else {
@@ -253,7 +262,7 @@ async function fetchData() {
         });
 
         // Pre-fill answers for viewing
-        answersFromServer.forEach((ans: any) => {
+        answersFromServer.forEach((ans: Answer) => {
           const question = questionMap.get(ans.question);
           if (question && question.question_type === 'multiple_choice') {
             try {
@@ -276,7 +285,7 @@ async function fetchData() {
         // This case should ideally not happen if student is on this page,
         // as a submission is created upon starting the exam.
         // But as a fallback, we can init empty answers.
-        exam.value.questions.forEach((q: any) => {
+        exam.value.questions.forEach((q: Question) => {
           if (q.question_type === 'multiple_choice') {
             studentAnswers.value[q.id] = [];
           } else {
@@ -311,11 +320,13 @@ function startTimer() {
   remainingTime.value = Math.max(0, Math.floor((finalDeadline - now) / 1000));
 
   if (remainingTime.value > 0 && !timer.value) {
-    timer.value = setInterval(() => {
+    timer.value = window.setInterval(() => {
       remainingTime.value--;
       if (remainingTime.value <= 0) {
-        clearInterval(timer.value);
-        timer.value = null;
+        if (timer.value) {
+          clearInterval(timer.value);
+          timer.value = null;
+        }
         ElMessage.warning('时间到，系统将自动提交考试。');
         submitExam(true); // Auto-submit
       }
@@ -349,7 +360,7 @@ const handleRadioClick = (questionId: number, choiceId: string) => {
 
 const totalPoints = computed(() => {
   if (!exam.value || !exam.value.questions) return 0;
-  return exam.value.questions.reduce((sum: number, q: any) => sum + q.points, 0);
+  return exam.value.questions.reduce((sum: number, q: Question) => sum + q.points, 0);
 });
 
 const getQuestionTypeName = (type: string) => {
@@ -394,16 +405,16 @@ const isReadOnly = computed(() => {
 const getAnswerForQuestion = (questionId: number) => {
   const sub = isStudent.value ? submission.value : selectedSubmission.value;
   if (!sub || !sub.answers) return null;
-  return sub.answers.find((a: any) => a.question === questionId);
+  return sub.answers.find((a: Answer) => a.question === questionId);
 };
 
-const getStudentAnswerText = (question: any) => {
+const getStudentAnswerText = (question: Question) => {
   const answer = getAnswerForQuestion(question.id);
   if (!answer || !answer.text) return '';
 
   const getChoiceTextById = (choiceId: string) => {
-    const choice = question.choices.find((c: any) => c.id.toString() === choiceId);
-    const choiceIndex = question.choices.findIndex((c: any) => c.id.toString() === choiceId);
+    const choice = question.choices.find((c: QuestionChoice) => c.id.toString() === choiceId);
+    const choiceIndex = question.choices.findIndex((c: QuestionChoice) => c.id.toString() === choiceId);
     return choice ? `${getChoiceLabel(choiceIndex)}. ${choice.text}` : '无效选项';
   };
 
@@ -415,7 +426,7 @@ const getStudentAnswerText = (question: any) => {
     try {
       const answerIds = JSON.parse(answer.text);
       if (Array.isArray(answerIds)) {
-        return answerIds.map((id: any) => getChoiceTextById(id.toString())).join(', ');
+        return answerIds.map((id: string | number) => getChoiceTextById(id.toString())).join(', ');
       }
       return '无效答案格式';
     } catch (e) {
@@ -428,13 +439,13 @@ const getStudentAnswerText = (question: any) => {
   return answer.text;
 };
 
-const getCorrectAnswerForQuestion = (question: any) => {
+const getCorrectAnswerForQuestion = (question: Question) => {
   if (question.question_type === 'single_choice' || question.question_type === 'multiple_choice') {
-    const correctChoices = question.choices.filter((c: any) => c.is_correct);
+    const correctChoices = question.choices.filter((c: QuestionChoice) => c.is_correct);
     if (correctChoices.length === 0) return '未提供';
     
-    return correctChoices.map((choice: any) => {
-      const choiceIndex = question.choices.findIndex((c: any) => c.id === choice.id);
+    return correctChoices.map((choice: QuestionChoice) => {
+      const choiceIndex = question.choices.findIndex((c: QuestionChoice) => c.id === choice.id);
       return `${getChoiceLabel(choiceIndex)}. ${choice.text}`;
     }).join(', ');
   }
@@ -444,17 +455,17 @@ const getCorrectAnswerForQuestion = (question: any) => {
   return question.correct_answer || '未提供';
 };
 
-const isAnswerCorrect = (question: any) => {
+const isAnswerCorrect = (question: Question) => {
   const answer = getAnswerForQuestion(question.id);
   if (!answer) return false;
 
   if (question.question_type === 'single_choice') {
-    const correctChoice = question.choices.find((c: any) => c.is_correct);
+    const correctChoice = question.choices.find((c: QuestionChoice) => c.is_correct);
     return correctChoice ? answer.text === correctChoice.id.toString() : false;
   }
 
   if (question.question_type === 'multiple_choice') {
-    const correctChoiceIds = question.choices.filter((c: any) => c.is_correct).map((c: any) => c.id.toString());
+    const correctChoiceIds = question.choices.filter((c: QuestionChoice) => c.is_correct).map((c: QuestionChoice) => c.id.toString());
     try {
       const studentAnswerIds = JSON.parse(answer.text).map(String).sort();
       correctChoiceIds.sort();
@@ -475,7 +486,7 @@ const isQuestionAnswered = (questionId: number) => {
   return !!answer && answer.toString().trim() !== '';
 };
 
-const getQuestionNavType = (question: any) => {
+const getQuestionNavType = (question: Question) => {
   if (isGraded.value) {
     return isAnswerCorrect(question) ? 'success' : 'danger';
   }
@@ -528,8 +539,8 @@ async function handleStudentSelect(submissionId: string) {
     
     if (selectedSubmission.value) {
       gradingFeedback.value = selectedSubmission.value.feedback || '';
-      const scores: any = {};
-      selectedSubmission.value.answers.forEach((ans: any) => {
+      const scores: { [key: number]: number } = {};
+      selectedSubmission.value.answers.forEach((ans: Answer) => {
         scores[ans.id] = ans.score ?? 0;
       });
       gradingScores.value = scores;
@@ -543,10 +554,13 @@ async function handleStudentSelect(submissionId: string) {
 
 async function saveGrades() {
   if (!selectedSubmission.value) return;
-  const answersPayload = Object.keys(gradingScores.value).map(answerId => ({
-    id: parseInt(answerId),
-    score: gradingScores.value[answerId],
-  }));
+  const answersPayload = Object.keys(gradingScores.value).map(answerIdStr => {
+    const answerId = parseInt(answerIdStr, 10);
+    return {
+      id: answerId,
+      score: gradingScores.value[answerId],
+    };
+  });
   const payload = { answers: answersPayload, feedback: gradingFeedback.value };
   try {
     await api.post(`/exam-submissions/${selectedSubmission.value.id}/grade/`, payload);
@@ -559,7 +573,7 @@ async function saveGrades() {
 }
 
 const submitExam = async (isAutoSubmit = false) => {
-  if (isSubmitting.value) return;
+  if (isSubmitting.value || !exam.value || !submission.value) return;
 
   try {
     if (!isAutoSubmit) {
@@ -576,29 +590,31 @@ const submitExam = async (isAutoSubmit = false) => {
       clearInterval(timer.value);
       timer.value = null;
     }
-    const questionMap = new Map(exam.value.questions.map((q: any) => [q.id.toString(), q]));
+    const questionMap = new Map(exam.value.questions.map((q: Question) => [q.id.toString(), q]));
     const answersPayload = Object.keys(studentAnswers.value)
-      .map(questionId => {
+      .map(questionIdStr => {
+        const questionId = parseInt(questionIdStr, 10);
         const answer = studentAnswers.value[questionId];
-        const question = questionMap.get(questionId);
+        const question = questionMap.get(questionIdStr);
 
         if (!question) return null;
 
         if (question.question_type === 'multiple_choice') {
           if (Array.isArray(answer) && answer.length > 0) {
-            return { question: parseInt(questionId), text: JSON.stringify(answer.sort()) };
+            return { question: questionId, text: JSON.stringify(answer.sort()) };
           }
         } else {
           if (answer && answer.toString().trim() !== '') {
-            return { question: parseInt(questionId), text: answer.toString() };
+            return { question: questionId, text: answer.toString() };
           }
         }
         return null;
       })
-      .filter(p => p);
+      .filter((p): p is { question: number; text: string } => p !== null);
 
     if (answersPayload.length === 0 && !isAutoSubmit) {
       ElMessage.warning('您还没有回答任何问题。');
+      isSubmitting.value = false; // Reset submitting state
       return;
     }
     

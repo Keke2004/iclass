@@ -32,11 +32,13 @@ urlpatterns = [
     path("api/ai/", include('ai_assistant.urls')),
 ]
 
+from courses.views import ranged_media_view
+
+# 使用 re_path 来捕获所有 media 文件路径
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', ranged_media_view, name='ranged_media_view'),
+]
+
 if settings.DEBUG:
-    from courses.views import ranged_media_view
-    # 使用 re_path 来捕获所有 media 文件路径
-    urlpatterns += [
-        re_path(r'^media/(?P<path>.*)$', ranged_media_view, name='ranged_media_view'),
-    ]
     # 保留 static() 以便处理其他静态文件，但我们的 ranged 视图会优先处理 media
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

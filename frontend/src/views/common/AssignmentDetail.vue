@@ -1,5 +1,5 @@
 <template>
-  <div class="assignment-detail-container" v-if="!loading">
+  <div class="assignment-detail-container" v-if="!loading && assignment">
     <!-- Header -->
     <el-card class="page-header-card">
       <div class="header-content">
@@ -8,13 +8,13 @@
           <div class="header-meta">
             <span>题目: {{ assignment.questions?.length || 0 }}</span>
             <span>总分: {{ totalPoints }}</span>
-            <span v-if="isStudent && isGraded">作答时间: {{ formatDate(submission.submitted_at) }}</span>
+            <span v-if="isStudent && isGraded && submission">作答时间: {{ formatDate(submission.submitted_at) }}</span>
             <span v-else>截止时间: {{ formatDate(assignment.due_date) }}</span>
           </div>
         </div>
         <div class="header-right" v-if="isStudent && showResults">
           <span class="score-label">得分</span>
-          <span class="score-value">{{ isGraded ? submission.grade : 0 }}</span>
+          <span class="score-value">{{ (isGraded && submission) ? submission.grade : 0 }}</span>
         </div>
       </div>
     </el-card>
@@ -123,9 +123,9 @@
                     </div>
                   </div>
 
-                  <div class="grading-area">
+                  <div class="grading-area" v-if="getAnswerForQuestion(question.id)">
                     <span>打分:</span>
-                    <el-input-number v-model="gradingScores[getAnswerForQuestion(question.id).id]" :min="0" :max="question.points" size="small" />
+                    <el-input-number v-model="gradingScores[getAnswerForQuestion(question.id)!.id]" :min="0" :max="question.points" size="small" />
                   </div>
                 </div>
               </div>
@@ -157,11 +157,11 @@
               {{ index + 1 }}
             </el-button>
           </div>
-           <div v-if="showResults" class="sidebar-summary">
+           <div v-if="showResults && submission" class="sidebar-summary">
             <h4>作业总览</h4>
             <p>最终得分: {{ isGraded ? submission.grade : 0 }} / {{ totalPoints }}</p>
             <h4>教师评语</h4>
-            <p>{{ submission?.feedback || '暂无评语' }}</p>
+            <p>{{ submission.feedback || '暂无评语' }}</p>
           </div>
         </el-card>
 
@@ -197,21 +197,22 @@ import { useRoute } from 'vue-router';
 import api from '@/services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { CircleCheckFilled, CircleCloseFilled } from '@element-plus/icons-vue';
+import type { Assignment, Question, Submission, StudentSubmissionStatus, Answer, QuestionType } from '@/types';
 
 const route = useRoute();
 const loading = ref(true);
-const assignment = ref<any>(null);
+const assignment = ref<Assignment | null>(null);
 const userRole = localStorage.getItem('user_role');
 const assignmentId = route.params.id;
 
 // For Student
-const submission = ref<any>(null);
-const studentAnswers = ref<any>({});
+const submission = ref<Submission | null>(null);
+const studentAnswers = ref<{ [key: string]: string | string[] }>({});
 
 // For Teacher
-const allSubmissions = ref<any[]>([]); // This will be populated from assignment.student_submissions
-const selectedSubmission = ref<any>(null);
-const gradingScores = ref<any>({});
+const allSubmissions = ref<StudentSubmissionStatus[]>([]); // This will be populated from assignment.student_submissions
+const selectedSubmission = ref<Submission | null>(null);
+const gradingScores = ref<{ [key: string]: number }>({});
 const gradingFeedback = ref('');
 
 onMounted(async () => {
@@ -225,14 +226,16 @@ async function fetchData() {
     assignment.value = assignmentRes.data;
 
     if (userRole === 'student') {
+      if (!assignment.value) return;
       const submissionRes = await api.get(`/submissions/?assignment=${assignmentId}`);
       if (submissionRes.data && submissionRes.data.length > 0) {
         submission.value = submissionRes.data[0];
+        if (!submission.value) return;
         const answersFromServer = submission.value.answers;
-        const questionMap = new Map(assignment.value.questions.map((q: any) => [q.id, q]));
+        const questionMap = new Map(assignment.value.questions.map((q: Question) => [q.id, q]));
 
         // Initialize all answers first
-        assignment.value.questions.forEach((q: any) => {
+        assignment.value.questions.forEach((q: Question) => {
           if (q.question_type === 'multiple_choice') {
             studentAnswers.value[q.id] = [];
           } else {
@@ -241,7 +244,7 @@ async function fetchData() {
         });
 
         // Pre-fill answers for viewing
-        answersFromServer.forEach((ans: any) => {
+        answersFromServer.forEach((ans: Answer) => {
           const question = questionMap.get(ans.question);
           if (question && question.question_type === 'multiple_choice') {
             try {
@@ -257,7 +260,8 @@ async function fetchData() {
         });
       } else {
         // Init empty answers for submission
-        assignment.value.questions.forEach((q: any) => {
+        if (!assignment.value) return;
+        assignment.value.questions.forEach((q: Question) => {
           if (q.question_type === 'multiple_choice') {
             studentAnswers.value[q.id] = [];
           } else {
@@ -266,6 +270,7 @@ async function fetchData() {
         });
       }
     } else if (userRole === 'teacher') {
+      if (!assignment.value) return;
       // The full list of students and their submission status is now part of the assignment object
       allSubmissions.value = assignment.value.student_submissions || [];
     }
@@ -290,11 +295,11 @@ const handleRadioClick = (questionId: number, choiceId: string) => {
 
 const totalPoints = computed(() => {
   if (!assignment.value || !assignment.value.questions) return 0;
-  return assignment.value.questions.reduce((sum: number, q: any) => sum + q.points, 0);
+  return assignment.value.questions.reduce((sum: number, q: Question) => sum + q.points, 0);
 });
 
-const getQuestionTypeName = (type: string) => {
-  const typeMap: { [key: string]: string } = {
+const getQuestionTypeName = (type: QuestionType) => {
+  const typeMap: Record<QuestionType, string> = {
     'single_choice': '单选题',
     'multiple_choice': '多选题',
     'true_false': '判断题',
@@ -339,19 +344,19 @@ const isReadOnly = computed(() => {
   return false;
 });
 
-const getAnswerForQuestion = (questionId: number) => {
+const getAnswerForQuestion = (questionId: number): Answer | undefined => {
   const sub = isStudent.value ? submission.value : selectedSubmission.value;
-  if (!sub || !sub.answers) return null;
-  return sub.answers.find((a: any) => a.question === questionId);
+  if (!sub || !sub.answers) return undefined;
+  return sub.answers.find((a: Answer) => a.question === questionId);
 };
 
-const getStudentAnswerText = (question: any) => {
+const getStudentAnswerText = (question: Question) => {
   const answer = getAnswerForQuestion(question.id);
   if (!answer || !answer.text) return '';
 
   const getChoiceTextById = (choiceId: string) => {
-    const choice = question.choices.find((c: any) => c.id.toString() === choiceId);
-    const choiceIndex = question.choices.findIndex((c: any) => c.id.toString() === choiceId);
+    const choice = question.choices.find((c) => c.id.toString() === choiceId);
+    const choiceIndex = question.choices.findIndex((c) => c.id.toString() === choiceId);
     return choice ? `${getChoiceLabel(choiceIndex)}. ${choice.text}` : '无效选项';
   };
 
@@ -363,7 +368,7 @@ const getStudentAnswerText = (question: any) => {
     try {
       const answerIds = JSON.parse(answer.text);
       if (Array.isArray(answerIds)) {
-        return answerIds.map((id: any) => getChoiceTextById(id.toString())).join(', ');
+        return answerIds.map((id: number | string) => getChoiceTextById(id.toString())).join(', ');
       }
       return '无效答案格式';
     } catch (e) {
@@ -376,13 +381,13 @@ const getStudentAnswerText = (question: any) => {
   return answer.text;
 };
 
-const getCorrectAnswerForQuestion = (question: any) => {
+const getCorrectAnswerForQuestion = (question: Question) => {
   if (question.question_type === 'single_choice' || question.question_type === 'multiple_choice') {
-    const correctChoices = question.choices.filter((c: any) => c.is_correct);
+    const correctChoices = question.choices.filter((c) => c.is_correct);
     if (correctChoices.length === 0) return '未提供';
     
-    return correctChoices.map((choice: any) => {
-      const choiceIndex = question.choices.findIndex((c: any) => c.id === choice.id);
+    return correctChoices.map((choice) => {
+      const choiceIndex = question.choices.findIndex((c) => c.id === choice.id);
       return `${getChoiceLabel(choiceIndex)}. ${choice.text}`;
     }).join(', ');
   }
@@ -392,17 +397,17 @@ const getCorrectAnswerForQuestion = (question: any) => {
   return question.correct_answer || '未提供';
 };
 
-const isAnswerCorrect = (question: any) => {
+const isAnswerCorrect = (question: Question): boolean => {
   const answer = getAnswerForQuestion(question.id);
   if (!answer) return false;
 
   if (question.question_type === 'single_choice') {
-    const correctChoice = question.choices.find((c: any) => c.is_correct);
+    const correctChoice = question.choices.find((c) => c.is_correct);
     return correctChoice ? answer.text === correctChoice.id.toString() : false;
   }
 
   if (question.question_type === 'multiple_choice') {
-    const correctChoiceIds = question.choices.filter((c: any) => c.is_correct).map((c: any) => c.id.toString());
+    const correctChoiceIds = question.choices.filter((c) => c.is_correct).map((c) => c.id.toString());
     try {
       const studentAnswerIds = JSON.parse(answer.text).map(String).sort();
       correctChoiceIds.sort();
@@ -423,7 +428,7 @@ const isQuestionAnswered = (questionId: number) => {
   return !!answer && answer.toString().trim() !== '';
 };
 
-const getQuestionNavType = (question: any) => {
+const getQuestionNavType = (question: Question) => {
   if (isGraded.value) {
     return isAnswerCorrect(question) ? 'success' : 'danger';
   }
@@ -474,9 +479,9 @@ async function handleStudentSelect(submissionId: string) {
     
     if (selectedSubmission.value) {
       gradingFeedback.value = selectedSubmission.value.feedback || '';
-      const scores: any = {};
-      selectedSubmission.value.answers.forEach((ans: any) => {
-        scores[ans.id] = ans.score ?? 0;
+      const scores: { [key: string]: number } = {};
+      selectedSubmission.value.answers.forEach((ans: Answer) => {
+        scores[ans.id.toString()] = ans.score ?? 0;
       });
       gradingScores.value = scores;
     }
@@ -516,7 +521,8 @@ const submitAssignment = async () => {
   }
 
   try {
-    const questionMap = new Map(assignment.value.questions.map((q: any) => [q.id.toString(), q]));
+    if (!assignment.value) return;
+    const questionMap = new Map(assignment.value.questions.map((q: Question) => [q.id.toString(), q]));
     const answersPayload = Object.keys(studentAnswers.value)
       .map(questionId => {
         const answer = studentAnswers.value[questionId];

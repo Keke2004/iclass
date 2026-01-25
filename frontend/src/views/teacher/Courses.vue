@@ -13,25 +13,27 @@
       </div>
     </div>
 
-    <div v-if="loading" class="loading-state">
-      <p>正在加载课程...</p>
-    </div>
+    <div class="course-grid-wrapper">
+      <div v-if="loading" class="loading-state">
+        <p>正在加载课程...</p>
+      </div>
 
-    <div v-else-if="filteredCourses.length === 0" class="empty-state">
-      <p>没有找到匹配的课程。</p>
-    </div>
+      <div v-else-if="filteredCourses.length === 0" class="empty-state">
+        <p>没有找到匹配的课程。</p>
+      </div>
 
-    <el-row :gutter="20" v-else>
-      <el-col :span="8" v-for="course in filteredCourses" :key="course.id">
-        <course-card :course="course" @click="navigateToCourse(course.id)">
-          <template #actions>
-            <el-button type="primary" link @click.stop="openEditDialog(course)">编辑</el-button>
-            <el-button type="danger" link @click.stop="deleteCourse(course.id)">删除</el-button>
-            <el-button type="primary" link @click.stop="openStudentManager(course)">学生</el-button>
-          </template>
-        </course-card>
-      </el-col>
-    </el-row>
+      <el-row :gutter="20" v-else>
+        <el-col :span="8" v-for="course in filteredCourses" :key="course.id">
+          <course-card :course="course" @click="navigateToCourse(course.id)">
+            <template #actions>
+              <el-button type="primary" link @click.stop="openEditDialog(course)">编辑</el-button>
+              <el-button type="danger" link @click.stop="deleteCourse(course.id)">删除</el-button>
+              <el-button type="primary" link @click.stop="openStudentManager(course)">学生</el-button>
+            </template>
+          </course-card>
+        </el-col>
+      </el-row>
+    </div>
 
     <!-- 编辑课程对话框 -->
     <el-dialog v-model="editDialogVisible" title="编辑课程" width="50%">
@@ -105,7 +107,8 @@
 import { ref, onMounted, computed, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import apiClient from '../../services/api';
-import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import type { FormInstance, FormRules } from 'element-plus';
 import CourseCard from '../../components/CourseCard.vue';
 
 const router = useRouter();
@@ -337,13 +340,28 @@ onMounted(async () => {
 
 <style scoped>
 .course-list-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
   padding: 20px;
+  box-sizing: border-box;
+}
+.course-grid-wrapper {
+  flex-grow: 1;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.course-grid-wrapper::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
 }
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  flex-shrink: 0;
 }
 .header-actions {
   display: flex;

@@ -8,8 +8,8 @@
           <span>教师</span>
         </div>
       </template>
-      <div class="user-item">
-        <el-avatar>{{ teacher.username ? teacher.username[0].toUpperCase() : '' }}</el-avatar>
+      <div v-if="teacher?.id" class="user-item">
+        <el-avatar>{{ teacher.username ? teacher.username.charAt(0).toUpperCase() : '' }}</el-avatar>
         <span class="username">{{ teacher.username }}</span>
         <el-tag type="success" size="small">教师</el-tag>
       </div>
@@ -22,11 +22,11 @@
           <el-button v-if="isTeacher" type="primary" @click="addStudentDialogVisible = true">添加学生</el-button>
         </div>
       </template>
-      <div v-for="student in students" :key="student.id" class="user-item">
-        <el-avatar>{{ student.username ? student.username[0].toUpperCase() : '' }}</el-avatar>
+      <div v-for="student in filteredStudents" :key="student.id" class="user-item">
+        <el-avatar>{{ student.username ? student.username.charAt(0).toUpperCase() : '' }}</el-avatar>
         <span class="username">{{ student.username }}</span>
         <el-tag type="info" size="small">学生</el-tag>
-        <el-button v-if="isTeacher" type="danger" link @click="removeStudent(student.id)" class="remove-btn">移除</el-button>
+        <el-button v-if="isTeacher" type="danger" link @click="removeStudent(student.id!)" class="remove-btn">移除</el-button>
       </div>
       <el-empty v-if="students.length === 0" description="暂无学生"></el-empty>
     </el-card>
@@ -37,10 +37,10 @@
         <el-form-item label="选择学生">
           <el-select v-model="studentIdToAdd" placeholder="请选择要添加的学生" filterable>
             <el-option
-              v-for="student in availableStudents"
+              v-for="student in filteredAvailableStudents"
               :key="student.id"
               :label="student.username"
-              :value="student.id"
+              :value="student.id!"
             />
           </el-select>
         </el-form-item>
@@ -56,16 +56,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import apiClient from '../../services/api';
 import { ElMessage, ElCard, ElAvatar, ElTag, ElButton, ElEmpty, ElDialog, ElForm, ElFormItem, ElSelect, ElOption } from 'element-plus';
-
-interface User {
-  id: number;
-  username: string;
-  role: string;
-}
+import type { User } from '../../types';
 
 const route = useRoute();
 const teacher = ref<User>({} as User);
@@ -73,6 +68,9 @@ const students = ref<User[]>([]);
 const availableStudents = ref<User[]>([]);
 const addStudentDialogVisible = ref(false);
 const studentIdToAdd = ref<number | null>(null);
+
+const filteredStudents = computed(() => students.value.filter(s => s.id && s.username));
+const filteredAvailableStudents = computed(() => availableStudents.value.filter(s => s.id && s.username));
 
 const courseId = route.params.id;
 const isTeacher = ref(localStorage.getItem('user_role') === 'teacher');

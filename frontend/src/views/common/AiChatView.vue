@@ -116,10 +116,15 @@ const copyToClipboard = async (text: string, button: EventTarget | null) => {
 
 const setupMarked = () => {
   const renderer = new marked.Renderer();
-  const originalCodeRenderer = renderer.code;
 
-  renderer.code = (code, lang, escaped) => {
-    const rawCodeHtml = originalCodeRenderer.call(renderer, code, lang, escaped);
+  // Create a new, clean renderer instance to access its default 'code' method.
+  const defaultRenderer = new marked.Renderer();
+
+  renderer.code = (token) => {
+    // Use the default renderer's 'code' method to get the standard syntax-highlighted HTML.
+    // Pass the entire token object to ensure all required properties are present.
+    const rawCodeHtml = defaultRenderer.code(token);
+
     const copyButtonHtml = `<button class="copy-code-btn">复制</button>`;
     return `<div class="code-block-wrapper">${copyButtonHtml}${rawCodeHtml}</div>`;
   };
@@ -140,7 +145,7 @@ const models = ref([
   { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Meta Llama 3.3' },
   { id: 'mistralai/devstral-2512:free', name: 'Mistral Devstral 2 2512' },
 ]);
-const selectedModel = ref(localStorage.getItem('selectedApiModel') || models.value[0].id);
+const selectedModel = ref(localStorage.getItem('selectedApiModel') || (models.value[0]?.id ?? ''));
 
 watch(selectedModel, (newModelId) => {
   localStorage.setItem('selectedApiModel', newModelId);
@@ -158,7 +163,10 @@ const fetchSessions = async () => {
       selectSession(sessionIdFromUrl, false); // Don't update URL again
     } else if (sessions.value.length > 0 && !activeSessionId.value) {
       // Otherwise, if no session is active, select the first one
-      selectSession(sessions.value[0].id);
+      const firstSession = sessions.value[0];
+      if (firstSession) {
+        selectSession(firstSession.id);
+      }
     }
   } catch (error) {
     console.error('Error fetching sessions:', error);
@@ -206,7 +214,10 @@ const deleteSession = async (sessionId: number) => {
     if (activeSessionId.value === sessionId) {
       if (sessions.value.length > 0) {
         const newIndex = Math.max(0, deletedIndex - 1);
-        selectSession(sessions.value[newIndex].id);
+        const newSession = sessions.value[newIndex];
+        if (newSession) {
+          selectSession(newSession.id);
+        }
       } else {
         // If no sessions left, clear the chat window and URL
         activeSessionId.value = null;
@@ -286,8 +297,11 @@ const sendMessage = async () => {
     if (placeholderIndex !== -1) {
       // Replace placeholder with the final message object
       messages.value[placeholderIndex] = assistantMessage;
+      const messageToType = messages.value[placeholderIndex];
       // Pass the reactive message object from the array to the typing function
-      typeMessage(messages.value[placeholderIndex], assistantMessage.content);
+      if (messageToType) {
+        typeMessage(messageToType, assistantMessage.content);
+      }
     }
 
     // If the session was new, it now has a topic, so refresh the session list.
@@ -299,7 +313,9 @@ const sendMessage = async () => {
         const sessionIndex = sessions.value.findIndex(s => s.id === currentSessionId);
         if (sessionIndex > 0) {
             const [sessionToMove] = sessions.value.splice(sessionIndex, 1);
-            sessions.value.unshift(sessionToMove);
+            if (sessionToMove) {
+              sessions.value.unshift(sessionToMove);
+            }
         }
     }
 
@@ -307,7 +323,10 @@ const sendMessage = async () => {
     console.error('Error fetching AI response:', error);
     const placeholderIndex = messages.value.findIndex(m => m.id === assistantMessagePlaceholder.id);
     if (placeholderIndex !== -1) {
-      messages.value[placeholderIndex].content = '抱歉，AI 助教当前不可用。请稍后再试。';
+      const placeholderMessage = messages.value[placeholderIndex];
+      if (placeholderMessage) {
+        placeholderMessage.content = '抱歉，AI 助教当前不可用。请稍后再试。';
+      }
     }
   } finally {
     isSending.value = false;

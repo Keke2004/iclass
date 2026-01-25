@@ -115,7 +115,7 @@ import ExamEditor from '@/views/teacher/ExamEditor.vue';
 const router = useRouter();
 const route = useRoute();
 const userRole = localStorage.getItem('user_role');
-const courseId = computed(() => route.params.id as string);
+const courseId = computed(() => Number(route.params.id));
 const activeTab = ref('all');
 const loading = ref(true);
 const exams = ref<any[]>([]);
