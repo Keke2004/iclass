@@ -54,10 +54,13 @@
         </el-select>
         <div class="chat-input">
           <el-input
+            type="textarea"
+            :autosize="{ minRows: 1, maxRows: 5 }"
             v-model="newMessage"
-            placeholder="向 AI 助教提问..."
-            @keyup.enter="sendMessage"
+            placeholder="向 AI 助教提问... (Shift + Enter 换行)"
+            @keydown.enter.exact.prevent="sendMessage"
             :disabled="!activeSessionId"
+            resize="none"
             size="large"
           />
           <el-button @click="sendMessage" :disabled="isSending || !activeSessionId" type="primary" size="large">

@@ -194,6 +194,7 @@ onMounted(() => {
 }
 .rich-text-content {
   line-height: 1.8;
+  white-space: pre-wrap;
 }
 .media-container {
   margin-top: 30px;
