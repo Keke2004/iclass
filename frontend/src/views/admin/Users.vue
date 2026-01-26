@@ -19,9 +19,10 @@
         <el-button @click="resetFilters">重置</el-button>
       </div>
     </div>
-    <el-table :data="users" v-loading="loading" style="width: 100%">
-      <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="username" label="用户名" />
+    <div class="table-wrapper">
+      <el-table :data="users" v-loading="loading" style="width: 100%" height="100%">
+        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column prop="username" label="用户名" />
       <el-table-column prop="first_name" label="姓名" />
       <el-table-column prop="email" label="邮箱" />
       <el-table-column prop="school" label="单位/学校" />
@@ -41,6 +42,7 @@
         </template>
       </el-table-column>
     </el-table>
+    </div>
 
     <el-pagination
       @size-change="handleSizeChange"
@@ -220,7 +222,16 @@ onMounted(() => {
 
 <style scoped>
 .users-container {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background-color: #fff;
   padding: 20px;
+  border-radius: 8px;
+  height: calc(100vh - 120px);
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 95%;
 }
 .toolbar {
   display: flex;
@@ -228,6 +239,7 @@ onMounted(() => {
   align-items: flex-start;
   margin-bottom: 20px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 .filters-grid {
   display: grid;
@@ -244,8 +256,17 @@ onMounted(() => {
   display: flex;
   gap: 10px;
 }
+h1 {
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+.table-wrapper {
+  flex-grow: 1;
+  overflow: hidden;
+}
 .el-pagination {
   margin-top: 20px;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 </style>

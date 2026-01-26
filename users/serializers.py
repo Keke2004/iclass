@@ -1,8 +1,6 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import AuthenticationFailed
-from django.utils.http import urlsafe_base64_decode
-from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth import get_user_model
 from .models import User
 
@@ -38,7 +36,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'password', 'email', 'role', 'gender', 'phone_number', 'school', 'student_id', 'first_name']
         extra_kwargs = {
-            'password': {'write_only': True, 'required': False},
+            'password': {'write_only': True, 'required': True},
         }
 
     def create(self, validated_data):
@@ -52,7 +50,7 @@ class UserSerializer(serializers.ModelSerializer):
             phone_number=validated_data.get('phone_number'),
             school=validated_data.get('school'),
             student_id=validated_data.get('student_id'),
-            first_name=validated_data.get('first_name')
+            first_name=validated_data.get('first_name', '')
         )
         return user
 

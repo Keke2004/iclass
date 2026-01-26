@@ -22,3 +22,8 @@ export const directPasswordReset = async (payload: DirectPasswordResetPayload) =
   const response = await apiClient.post('/users/auth/password/reset/direct/', payload);
   return response.data;
 };
+
+export const changePassword = async (passwordData: any) => {
+  const response = await apiClient.post('/users/auth/password/change/', passwordData);
+  return response.data;
+};

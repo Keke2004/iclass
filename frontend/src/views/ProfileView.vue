@@ -5,14 +5,14 @@
       <div
         class="tab"
         :class="{ active: activeTab === 'basic' }"
-        @click="activeTab = 'basic'"
+        @click="setTab('basic')"
       >
         基本资料
       </div>
       <div
         class="tab"
         :class="{ active: activeTab === 'password' }"
-        @click="activeTab = 'password'"
+        @click="setTab('password')"
       >
         密码管理
       </div>
@@ -109,12 +109,20 @@
 
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { View, Hide } from '@element-plus/icons-vue';
 import { getProfile, updateProfile } from '@/services/api';
-import apiClient from '@/services/api';
+import { changePassword as changePasswordService } from '@/services/auth';
 import { ElMessage } from 'element-plus';
 
+const route = useRoute();
+const router = useRouter();
 const activeTab = ref('basic');
+
+const setTab = (tab: string) => {
+  activeTab.value = tab;
+  router.push({ query: { tab } });
+};
 const user = ref<any>(null);
 
 const editableUser = reactive({
@@ -143,6 +151,11 @@ const togglePasswordVisibility = (field: 'current' | 'new' | 'confirm') => {
 };
 
 onMounted(async () => {
+  const tabFromQuery = route.query.tab;
+  if (tabFromQuery && (tabFromQuery === 'basic' || tabFromQuery === 'password')) {
+    activeTab.value = tabFromQuery;
+  }
+
   try {
     const response = await getProfile();
     user.value = response.data;
@@ -176,7 +189,7 @@ const changePassword = async () => {
     return;
   }
   try {
-    await apiClient.post('/auth/password/change/', passwordData);
+    await changePasswordService(passwordData);
     ElMessage.success('密码修改成功！');
     Object.assign(passwordData, {
       old_password: '',

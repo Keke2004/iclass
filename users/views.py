@@ -5,11 +5,6 @@ from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
-from django.core.mail import send_mail
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
-from django.contrib.auth import get_user_model
 from .serializers import (
     UserSerializer, MyTokenObtainPairSerializer, PasswordChangeSerializer,
     DirectPasswordResetSerializer
@@ -17,7 +12,6 @@ from .serializers import (
 from .models import User
 from .permissions import IsAdminRole
 from .filters import UserFilter
-from logs.models import Log
 
 class StandardResultsSetPagination(PageNumberPagination):
     page_size = 10
@@ -26,6 +20,11 @@ class StandardResultsSetPagination(PageNumberPagination):
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+class UserRegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.AllowAny]
 
 class UserViewSet(viewsets.ModelViewSet):
     """
