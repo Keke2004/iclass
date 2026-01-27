@@ -18,7 +18,17 @@
         <el-card v-for="reply in replies" :key="reply.id" class="reply-card">
           <div class="reply-header">
             <span class="reply-author">{{ reply.author.username }}</span>
-            <span class="reply-time">{{ new Date(reply.created_at).toLocaleString() }}</span>
+            <div class="reply-meta-right">
+              <span class="reply-time">{{ new Date(reply.created_at).toLocaleString() }}</span>
+              <el-button
+                v-if="currentUser && (currentUser.id === reply.author.id || isTeacher)"
+                type="danger"
+                size="small"
+                @click="deleteReply(reply.id)"
+                :icon="ElIconDelete"
+                circle
+              ></el-button>
+            </div>
           </div>
           <div class="reply-content" v-html="reply.content"></div>
         </el-card>
@@ -42,10 +52,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import apiClient from '@/services/api';
-import { ElMessage, ElCard, ElInput, ElButton } from 'element-plus';
+import { ElMessage, ElMessageBox, ElCard, ElInput, ElButton, ElIcon } from 'element-plus';
+import { Delete as ElIconDelete } from '@element-plus/icons-vue';
+import { getUserProfile } from '@/services/auth';
+import type { User as UserType } from '@/types';
+
+
 
 interface User {
   id: number;
@@ -71,9 +86,21 @@ const route = useRoute();
 const courseId = route.params.id;
 const topicId = route.params.topicId;
 
+const currentUser = ref<UserType | null>(null);
+const isTeacher = computed(() => currentUser.value?.role === 'teacher');
+
 const topic = ref<Topic | null>(null);
 const replies = ref<Reply[]>([]);
 const newReply = ref({ content: '' });
+
+const fetchCurrentUser = async () => {
+  try {
+    currentUser.value = await getUserProfile();
+  } catch (error) {
+    console.error("Failed to fetch user profile:", error);
+    ElMessage.error('无法获取用户信息');
+  }
+};
 
 const fetchTopicDetail = async () => {
   try {
@@ -111,7 +138,31 @@ const postReply = async () => {
   }
 };
 
+const deleteReply = async (replyId: number) => {
+  ElMessageBox.confirm(
+    '确定要删除这条回复吗？此操作无法撤销。',
+    '警告',
+    {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(async () => {
+    try {
+      await apiClient.delete(`/courses/${courseId}/discussions/${topicId}/replies/${replyId}/`);
+      ElMessage.success('回复已删除');
+      await fetchReplies(); // Refresh replies
+    } catch (error) {
+      console.error('Failed to delete reply:', error);
+      ElMessage.error('删除失败');
+    }
+  }).catch(() => {
+    // User cancelled
+  });
+};
+
 onMounted(() => {
+  fetchCurrentUser();
   fetchTopicDetail();
   fetchReplies();
 });
@@ -156,6 +207,11 @@ onMounted(() => {
 .reply-card {
   margin-bottom: 15px;
 }
+
+.reply-card .el-card__body {
+  padding: 15px;
+}
+
 .reply-header {
   display: flex;
   justify-content: space-between;
@@ -163,12 +219,24 @@ onMounted(() => {
   margin-bottom: 10px;
   font-size: 0.9em;
 }
+
 .reply-author {
   font-weight: bold;
 }
-.reply-time {
+
+.reply-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   color: #909399;
 }
+
+.reply-content {
+  line-height: 1.6;
+  width: 100%;
+  padding-top: 10px; /* Add some space between header and content */
+}
+
 .no-replies-card {
   text-align: center;
   color: #909399;

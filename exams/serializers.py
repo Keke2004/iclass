@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from django.utils import timezone
 from .models import Exam, ExamQuestion, ExamChoice, ExamSubmission, ExamAnswer
-from users.models import User
 
 class StudentExamSubmissionStatusSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source='student.username', read_only=True)

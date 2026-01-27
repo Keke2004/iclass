@@ -12,10 +12,11 @@ class DiscussionReplySerializer(serializers.ModelSerializer):
 class DiscussionTopicSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
     replies = DiscussionReplySerializer(many=True, read_only=True)
+    reply_count = serializers.IntegerField(source='replies.count', read_only=True)
 
     class Meta:
         model = DiscussionTopic
-        fields = ['id', 'course', 'title', 'content', 'author', 'created_at', 'replies']
+        fields = ['id', 'course', 'title', 'content', 'author', 'created_at', 'replies', 'reply_count']
         read_only_fields = ['author', 'course']
 
 class AttendanceSerializer(serializers.ModelSerializer):

@@ -52,6 +52,13 @@ class DiscussionReplyListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user, topic_id=self.kwargs['topic_id'])
 
+
+class DiscussionReplyDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = DiscussionReplySerializer
+    permission_classes = [permissions.IsAuthenticated, IsCourseMember, IsAuthorOrTeacherOrReadOnly]
+    queryset = DiscussionReply.objects.all()
+    lookup_url_kwarg = 'reply_id'
+
 class MyDiscussionsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 

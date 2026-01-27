@@ -1,5 +1,4 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
-from courses.models import Course
 from .models import Exam
 
 

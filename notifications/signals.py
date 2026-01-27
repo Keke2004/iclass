@@ -4,7 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from assignments.models import Assignment, Submission
 from exams.models import Exam, ExamSubmission
 from checkin.models import Checkin, CheckinRecord
-from interaction.models import DiscussionTopic, Question, Vote, VoteResponse, RandomQuestion
+from interaction.models import DiscussionTopic, DiscussionReply, Question, Vote, VoteResponse, RandomQuestion
 from feedback.models import Questionnaire, FeedbackResponse
 from courses.models import Announcement
 from .models import Notification
@@ -207,6 +207,20 @@ def create_submission_notification(sender, instance, created, **kwargs):
             content_type=ContentType.objects.get_for_model(instance),
             object_id=instance.id
         )
+
+@receiver(post_save, sender=DiscussionReply)
+def create_discussion_reply_notification(sender, instance, created, **kwargs):
+    if created:
+        topic = instance.topic
+        # Notify the author of the topic
+        if instance.author != topic.author:
+            Notification.objects.create(
+                recipient=topic.author,
+                sender=instance.author,
+                message=f"用户 {instance.author.username} 回复了你的讨论 '{topic.title}'。",
+                content_type=ContentType.objects.get_for_model(topic),
+                object_id=topic.id
+            )
 
 @receiver(post_save, sender=Assignment)
 def create_assignment_notification(sender, instance, created, **kwargs):

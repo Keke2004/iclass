@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from .models import Notification
 from users.serializers import UserSerializer
-from django.contrib.contenttypes.models import ContentType
 
 class NotificationSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)

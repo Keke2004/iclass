@@ -35,33 +35,43 @@
 
     <!-- Topic List -->
     <div class="topic-list-section">
-      <h3>{{ filterTitles[activeFilter] }} ({{ filteredTopics.length }} 条)</h3>
-      <el-card v-if="loading" shadow="never" class="loading-card">
-        <p>正在加载...</p>
-      </el-card>
-      <div v-else-if="filteredTopics.length === 0" class="no-topics">
-        <p>这里还没有内容哦~</p>
-      </div>
-      <div v-else class="topic-list">
-        <el-card v-for="topic in filteredTopics" :key="topic.id" class="topic-card" shadow="hover" @click="navigateToTopic(topic.id)">
-          <div class="topic-header">
-            <span class="topic-title">{{ topic.title }}</span>
-            <div class="topic-meta">
-              <span>{{ topic.author.username }} | {{ new Date(topic.created_at).toLocaleString() }}</span>
-              <el-button
-                v-if="currentUser && (currentUser.id === topic.author.id || isTeacher)"
-                type="danger"
-                size="small"
-                @click.stop="deleteTopic(topic.id)"
-                :icon="ElIconDelete"
-                circle
-              ></el-button>
-            </div>
-          </div>
-          <div class="topic-content">
-            {{ topic.content }}
-          </div>
+      <div class="scrollable-area">
+        <h3>{{ filterTitles[activeFilter] }} ({{ filteredTopics.length }} 条)</h3>
+        <el-card v-if="loading" shadow="never" class="loading-card">
+          <p>正在加载...</p>
         </el-card>
+        <div v-else-if="filteredTopics.length === 0" class="no-topics">
+          <p>这里还没有内容哦~</p>
+        </div>
+        <div v-else class="topic-list">
+          <el-card v-for="topic in filteredTopics" :key="topic.id" class="topic-card" shadow="hover" @click="navigateToTopic(topic.id)">
+            <div class="topic-main">
+              <div class="topic-header">
+                <span class="topic-title">{{ topic.title }}</span>
+              </div>
+              <div class="topic-content">
+                {{ topic.content }}
+              </div>
+            </div>
+            <div class="topic-aside">
+              <div class="topic-meta">
+                <span>{{ topic.author.username }} | {{ new Date(topic.created_at).toLocaleString() }}</span>
+                <el-button
+                  v-if="currentUser && (currentUser.id === topic.author.id || isTeacher)"
+                  type="danger"
+                  size="small"
+                  @click.stop="deleteTopic(topic.id)"
+                  :icon="ElIconDelete"
+                  circle
+                ></el-button>
+              </div>
+              <div class="topic-stats">
+                  <el-icon><ElIconChatLineRound /></el-icon>
+                  <span class="reply-count">{{ topic.reply_count }}</span>
+              </div>
+            </div>
+          </el-card>
+        </div>
       </div>
     </div>
 
@@ -114,6 +124,7 @@ interface Topic {
   author: Author;
   created_at: string;
   course: number;
+  reply_count: number;
 }
 
 const route = useRoute();
@@ -293,7 +304,13 @@ onMounted(async () => {
 
 <style scoped>
 .discussion-manager-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 150px);
   padding: 20px;
+  box-sizing: border-box;
+  background-color: #fff;
+  border-radius: 8px;
 }
 .action-filter-bar {
   background-color: #fff;
@@ -301,6 +318,7 @@ onMounted(async () => {
   border-radius: 8px;
   margin-bottom: 20px;
   border: 1px solid #e0e0e0;
+  flex-shrink: 0;
 }
 .top-row {
   display: flex;
@@ -317,7 +335,13 @@ onMounted(async () => {
   margin-left: 20px;
 }
 .topic-list-section {
-  margin-bottom: 30px;
+  flex-grow: 1;
+  overflow: hidden;
+}
+.scrollable-area {
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 15px; /* for scrollbar */
 }
 .no-topics {
   text-align: center;
@@ -339,23 +363,29 @@ onMounted(async () => {
 .topic-card {
   cursor: pointer;
 }
-.topic-header {
+
+.topic-card :deep(.el-card__body) {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  width: 100%;
+  padding: 15px;
+}
+
+.topic-main {
+  flex-grow: 1;
+  margin-right: 20px;
+  overflow: hidden;
+}
+
+.topic-header {
   margin-bottom: 10px;
 }
+
 .topic-title {
   font-weight: bold;
   font-size: 1.1em;
 }
-.topic-meta {
-  font-size: 0.9em;
-  color: #909399;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+
 .topic-content {
   color: #606266;
   overflow: hidden;
@@ -363,5 +393,43 @@ onMounted(async () => {
   display: -webkit-box;
   -webkit-line-clamp: 2; /* Show 2 lines */
   -webkit-box-orient: vertical;
+}
+
+.topic-aside {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.topic-meta {
+  font-size: 0.9em;
+  color: #909399;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.topic-stats {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  color: #8c939d;
+  background-color: rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  padding: 4px 12px;
+}
+
+.topic-stats .el-icon {
+  font-size: 1.1em;
+  margin-right: 6px;
+}
+
+.reply-count {
+  font-weight: 500;
+  font-size: 0.9em;
+  margin-top: 0;
 }
 </style>

@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from django.db import models
 from .models import Course, CourseMaterial, Announcement, Chapter, ChapterReadStatus
 from users.serializers import BasicUserSerializer
 
