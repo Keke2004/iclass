@@ -343,6 +343,14 @@ onMounted(async () => {
   overflow-y: auto;
   padding-right: 15px; /* for scrollbar */
 }
+
+.scrollable-area > h3 {
+  margin-bottom: 20px;
+  font-size: 1.2em;
+  font-weight: 600;
+  color: #303133;
+  letter-spacing: 0.5px;
+}
 .no-topics {
   text-align: center;
   color: #909399;

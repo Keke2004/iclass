@@ -190,20 +190,56 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  border-bottom: 1px solid #e4e7ed;
+  padding-bottom: 20px;
+  margin-bottom: 28px;
 }
+
+.header h2 {
+  font-size: 2em;
+  font-weight: 600;
+  color: #303133;
+}
+
 .rich-text-content {
   line-height: 1.8;
+  color: #333;
+  white-space: pre-wrap; /* 保持原有的换行策略 */
+}
+
+/* 针对富文本内容中的 <pre> 标签（通常用于代码）进行样式美化 */
+.rich-text-content :deep(pre) {
+  background-color: #f7f7f7;
+  color: #333;
+  padding: 20px;
+  border-radius: 8px;
   white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Courier New', Courier, monospace;
+  border: 1px solid #e0e0e0;
 }
+
 .media-container {
-  margin-top: 30px;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f2f5;
 }
+
+.media-container h4 {
+  font-size: 1.3em;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 16px;
+}
+
 .video-player, .pdf-viewer {
   width: 100%;
   max-width: 800px;
   border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
+
 .pdf-viewer {
   height: 800px;
 }

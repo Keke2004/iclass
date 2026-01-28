@@ -204,6 +204,17 @@ onMounted(() => {
 .replies-section {
   margin-bottom: 20px;
 }
+
+.replies-section > h3 {
+  margin-bottom: 20px;
+  font-size: 1.2em;
+  font-weight: 600;
+  color: #303133;
+  letter-spacing: 0.5px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e4e7ed;
+}
+
 .reply-card {
   margin-bottom: 15px;
 }
