@@ -281,7 +281,7 @@ const handleCommand = (command: string | number | object) => {
 }
 
 .menu-item-wrapper :deep(.el-badge__content) {
-  transform: translateY(-100%);
+  transform: translateY(-105%);
 }
 
 </style>
