@@ -37,6 +37,33 @@
               </div>
             </el-card>
           </div>
+          <div v-else-if="averageResults" class="average-results">
+            <el-card class="response-card">
+              <template #header>
+                <div class="card-header">
+                  <span>平均反馈数据</span>
+                </div>
+              </template>
+              <div class="response-body">
+                <div v-for="result in averageResults" :key="result.text" class="answer-item">
+                  <p class="question-text">{{ result.text }}</p>
+                  <div class="answer-content">
+                    <template v-if="result.type === 'rating'">
+                      <div class="rating-summary">
+                        <el-rate :model-value="result.average" disabled show-score score-template="{value} 星" />
+                        <span class="rating-count">({{ result.count }} 人评分)</span>
+                      </div>
+                    </template>
+                    <template v-else-if="result.type === 'text'">
+                      <ul class="text-answers">
+                        <li v-for="(answer, index) in result.answers" :key="index">{{ answer }}</li>
+                      </ul>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </el-card>
+          </div>
           <el-empty v-else description="请从右侧列表中选择学生查看反馈详情"></el-empty>
         </div>
 
@@ -72,11 +99,12 @@ import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import apiClient from '../../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import type { QuestionnaireDetail, FeedbackResponse, FeedbackStudentStatus, FeedbackQuestion } from '../../types';
+import type { QuestionnaireDetail, FeedbackResponse, FeedbackStudentStatus, FeedbackQuestion, FeedbackResults } from '../../types';
 
 const route = useRoute();
 const router = useRouter();
 const questionnaire = ref<QuestionnaireDetail | null>(null);
+const averageResults = ref<FeedbackResults | null>(null);
 const courseId = route.params.id;
 const feedbackId = route.params.feedbackId;
 
@@ -96,6 +124,16 @@ const fetchQuestionnaireDetail = async () => {
     questionnaire.value = response.data;
   } catch (error) {
     ElMessage.error('无法加载反馈详情');
+    console.error(error);
+  }
+};
+
+const fetchAverageResults = async () => {
+  try {
+    const response = await apiClient.get(`/questionnaires/${feedbackId}/results/`);
+    averageResults.value = response.data;
+  } catch (error) {
+    ElMessage.error('无法加载平均反馈数据');
     console.error(error);
   }
 };
@@ -153,10 +191,29 @@ const deleteQuestionnaire = async () => {
   }
 };
 
-onMounted(fetchQuestionnaireDetail);
+onMounted(() => {
+  fetchQuestionnaireDetail();
+  fetchAverageResults();
+});
 </script>
 
 <style scoped>
+.rating-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rating-count {
+  font-size: 0.9em;
+  color: #909399;
+}
+.text-answers {
+  list-style-type: disc;
+  padding-left: 20px;
+}
+.average-results {
+  margin-top: 20px;
+}
 .feedback-result-manager {
   padding: 20px;
 }

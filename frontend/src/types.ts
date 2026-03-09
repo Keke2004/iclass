@@ -201,3 +201,15 @@ export interface QuestionnaireDetail {
   questions: FeedbackQuestion[];
   student_statuses: FeedbackStudentStatus[];
 }
+
+export interface FeedbackResult {
+  text: string;
+  type: 'rating' | 'text';
+  average?: number;
+  count?: number;
+  answers?: string[];
+}
+
+export interface FeedbackResults {
+  [questionId: string]: FeedbackResult;
+}
