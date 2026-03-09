@@ -54,6 +54,30 @@ class UserSerializer(serializers.ModelSerializer):
         )
         return user
 
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['first_name', 'email', 'gender', 'phone_number', 'school', 'student_id']
+
+    def update(self, instance, validated_data):
+        # Update user profile fields
+        instance.first_name = validated_data.get('first_name', instance.first_name)
+        instance.email = validated_data.get('email', instance.email)
+        instance.gender = validated_data.get('gender', instance.gender)
+        instance.phone_number = validated_data.get('phone_number', instance.phone_number)
+        instance.school = validated_data.get('school', instance.school)
+        instance.student_id = validated_data.get('student_id', instance.student_id)
+        
+        # We do not handle password here. Password changes should be done through a dedicated endpoint.
+        
+        instance.save()
+        return instance
+
+    def to_representation(self, instance):
+        # 使用UserSerializer来序列化完整的用户信息
+        return UserSerializer(instance).data
+
 class BasicUserSerializer(serializers.ModelSerializer):
     """
     一个只包含用户基本信息的序列化器

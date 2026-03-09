@@ -180,7 +180,12 @@ onMounted(() => {
 .scrollable-content {
   flex-grow: 1;
   overflow-y: auto;
-  padding-right: 15px; /* To avoid scrollbar overlapping content */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollable-content::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
 }
 
 .topic-main-card {

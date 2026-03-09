@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import (
     UserSerializer, MyTokenObtainPairSerializer, PasswordChangeSerializer,
-    DirectPasswordResetSerializer
+    DirectPasswordResetSerializer, UserProfileSerializer
 )
 from .models import User
 from .permissions import IsAdminRole
@@ -80,11 +80,16 @@ class UserViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
-    serializer_class = UserSerializer
+    serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
         return self.request.user
+
+    def get_serializer_class(self):
+        if self.request.method == 'PUT' or self.request.method == 'PATCH':
+            return UserProfileSerializer
+        return UserSerializer
 
 class PasswordChangeView(generics.GenericAPIView):
     serializer_class = PasswordChangeSerializer

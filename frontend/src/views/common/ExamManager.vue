@@ -263,6 +263,11 @@ const deleteExam = async (examId: number) => {
   background-color: #f4f5f7;
   height: calc(100vh - 150px);
   overflow: auto;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.exam-manager::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, and Opera */
 }
 .page-card {
   border-radius: 8px;

@@ -637,6 +637,16 @@ const submitExam = async (isAutoSubmit = false) => {
 </script>
 
 <style scoped>
+.main-card > :deep(.el-card__body),
+.sidebar-card > :deep(.el-card__body) {
+  overflow-y: auto;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.main-card > :deep(.el-card__body)::-webkit-scrollbar,
+.sidebar-card > :deep(.el-card__body)::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, and Opera */
+}
 .exam-detail-container {
   padding: 20px;
   background-color: #f4f5f7;

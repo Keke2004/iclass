@@ -53,6 +53,10 @@
               <el-icon><chat-dot-round /></el-icon>
               <span>AI 助教</span>
             </el-menu-item>
+            <el-menu-item index="/profile">
+              <el-icon><user /></el-icon>
+              <span>个人中心</span>
+            </el-menu-item>
           </template>
 
           <!-- 教师菜单 -->
@@ -74,6 +78,10 @@
               <el-icon><chat-dot-round /></el-icon>
               <span>AI 助教</span>
             </el-menu-item>
+            <el-menu-item index="/profile">
+              <el-icon><user /></el-icon>
+              <span>个人中心</span>
+            </el-menu-item>
           </template>
 
           <!-- 管理员菜单 -->
@@ -89,6 +97,10 @@
             <el-menu-item index="/admin/logs">
               <el-icon><tickets /></el-icon>
               <span>日志管理</span>
+            </el-menu-item>
+            <el-menu-item index="/profile">
+              <el-icon><user /></el-icon>
+              <span>个人中心</span>
             </el-menu-item>
           </template>
         </el-menu>

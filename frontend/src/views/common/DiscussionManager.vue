@@ -341,7 +341,12 @@ onMounted(async () => {
 .scrollable-area {
   height: 100%;
   overflow-y: auto;
-  padding-right: 15px; /* for scrollbar */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollable-area::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
 }
 
 .scrollable-area > h3 {

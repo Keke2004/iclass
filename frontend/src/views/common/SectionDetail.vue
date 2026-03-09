@@ -178,6 +178,11 @@ onMounted(() => {
   flex-grow: 1;
   padding: 24px;
   overflow-y: auto; /* 使内容区可滚动 */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.content-area::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, and Opera */
 }
 .navigation-sidebar {
   width: 300px;
@@ -185,6 +190,11 @@ onMounted(() => {
   border-left: 1px solid #e0e0e0;
   height: 100%; /* 保持高度以适应flex容器 */
   overflow-y: auto; /* 导航器内部也可以滚动 */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.navigation-sidebar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, and Opera */
 }
 .header {
   display: flex;

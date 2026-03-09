@@ -635,6 +635,12 @@ const submitAssignment = async () => {
 .sidebar-card > :deep(.el-card__body) {
   flex-grow: 1;
   overflow-y: auto;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.main-card > :deep(.el-card__body)::-webkit-scrollbar,
+.sidebar-card > :deep(.el-card__body)::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, and Opera */
 }
 
 .question-list {

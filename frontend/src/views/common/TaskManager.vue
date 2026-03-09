@@ -286,6 +286,11 @@ onMounted(() => {
 .task-scroll-area {
   flex-grow: 1;
   overflow-y: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.task-scroll-area::-webkit-scrollbar {
+  display: none;
 }
 .task-section {
   margin-bottom: 30px;

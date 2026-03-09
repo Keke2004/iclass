@@ -58,7 +58,9 @@
             :autosize="{ minRows: 1, maxRows: 5 }"
             v-model="newMessage"
             placeholder="向 AI 助教提问... (Shift + Enter 换行)"
-            @keydown.enter.exact.prevent="sendMessage"
+            @keydown.enter.exact.prevent="handleEnter"
+            @compositionstart="isComposing = true"
+            @compositionend="isComposing = false"
             :disabled="!activeSessionId"
             resize="none"
             size="large"
@@ -140,13 +142,14 @@ const messages = ref<ChatMessage[]>([]);
 const sessions = ref<ChatSession[]>([]);
 const activeSessionId = ref<number | null>(null);
 const isSending = ref(false);
+const isComposing = ref(false);
 
 const models = ref([
-  { id: 'google/gemma-3-27b-it:free', name: 'Google Gemma 3' },
-  { id: 'xiaomi/mimo-v2-flash:free', name: 'MiMo-V2-Flash' },
-  { id: 'tngtech/deepseek-r1t2-chimera:free', name: 'DeepSeek R1T2' },
-  { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Meta Llama 3.3' },
-  { id: 'mistralai/devstral-2512:free', name: 'Mistral Devstral 2 2512' },
+  { id: 'qwen/qwen3-vl-235b-a22b-thinking', name: 'Qwen3 VL 235B A22B Thinking' },
+  { id: 'stepfun/step-3.5-flash:free', name: 'StepFun: Step 3.5 Flash' },
+  { id: 'arcee-ai/trinity-large-preview:free', name: 'Arcee AI: Trinity Large Preview' },
+  { id: 'liquid/lfm-2.5-1.2b-thinking:free', name: 'LiquidAI: LFM2.5-1.2B-Thinking' },
+  { id: 'nvidia/nemotron-3-nano-30b-a3b:free', name: 'NVIDIA: Nemotron 3 Nano 30B A3B' },
 ]);
 const selectedModel = ref(localStorage.getItem('selectedApiModel') || (models.value[0]?.id ?? ''));
 
@@ -246,6 +249,12 @@ const createNewSession = async () => {
     selectSession(newSession.id);
   } catch (error) {
     console.error('Error creating new session:', error);
+  }
+};
+
+const handleEnter = () => {
+  if (!isComposing.value) {
+    sendMessage();
   }
 };
 

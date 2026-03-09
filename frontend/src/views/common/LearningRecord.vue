@@ -15,7 +15,7 @@
         <el-option
           v-for="student in studentList"
           :key="student.id"
-          :label="student.first_name || student.username"
+          :label="student.username || student.first_name"
           :value="student.id"
         />
       </el-select>
@@ -292,6 +292,12 @@ onMounted(() => {
   flex-direction: column;
   gap: 20px;
   padding-right: 10px; /* 为滚动条留出空间，防止内容紧贴 */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.record-display::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
 }
 
 .record-card {

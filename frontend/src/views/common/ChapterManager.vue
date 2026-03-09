@@ -352,6 +352,11 @@ onUnmounted(() => {
 .content-wrapper {
   flex-grow: 1;
   overflow-y: auto;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.content-wrapper::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
 }
 
 .chapter-collapse {
